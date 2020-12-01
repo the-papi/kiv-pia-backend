@@ -1,0 +1,23 @@
+{
+  "name": "kiv-pia-backend",
+  "version": "0.1.0",
+  "main": "index.js",
+  "repository": "git@github.com:the-papi/kiv-pia-backend.git",
+  "author": "Patrik Janoušek <janopa@students.zcu.cz>",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "apollo-server": "^2.19.0",
+    "graphql": "^15.4.0",
+    "pg": "^8.5.1",
+    "pg-hstore": "^2.3.3",
+    "sequelize": "^6.3.5"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.6",
+    "sequelize-cli": "^6.2.0"
+  }
+}

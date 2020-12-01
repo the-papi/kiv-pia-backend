@@ -1,0 +1,22 @@
+version: '3.6'
+
+services:
+    app:
+        image: node:15.3.0-alpine
+        volumes:
+            - .:/var/www
+        ports:
+            - 4000:4000
+        working_dir: /var/www
+        command: |
+            ash -c '
+                yarn add --dev
+                yarn dev
+            '
+
+    postgres:
+        image: postgres:13
+        environment:
+            POSTGRES_USER: dev
+            POSTGRES_PASSWORD: dev
+            POSTGRES_DB: kiv_pia_backend
