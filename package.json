@@ -1,23 +1,26 @@
 {
-  "name": "kiv-pia-backend",
-  "version": "0.1.0",
-  "main": "index.js",
-  "repository": "git@github.com:the-papi/kiv-pia-backend.git",
-  "author": "Patrik Janoušek <janopa@students.zcu.cz>",
-  "type": "module",
-  "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
-  },
-  "dependencies": {
-    "apollo-server": "^2.19.0",
-    "graphql": "^15.4.0",
-    "pg": "^8.5.1",
-    "pg-hstore": "^2.3.3",
-    "sequelize": "^6.3.5"
-  },
-  "devDependencies": {
-    "nodemon": "^2.0.6",
-    "sequelize-cli": "^6.2.0"
-  }
+   "name": "kiv-pia-backend",
+   "version": "0.1.0",
+   "main": "index.js",
+   "repository": "git@github.com:the-papi/kiv-pia-backend.git",
+   "author": "Patrik Janoušek <janopa@students.zcu.cz>",
+   "license": "UNLICENSED",
+   "scripts": {
+      "start": "ts-node src/index.ts",
+      "dev": "nodemon src/index.ts",
+      "typeorm": "node --require ts-node/register ./node_modules/typeorm/cli.js"
+   },
+   "dependencies": {
+      "apollo-server": "^2.19.0",
+      "graphql": "^15.4.0",
+      "pg": "^8.5.1",
+      "typeorm": "0.2.29",
+      "reflect-metadata": "^0.1.10"
+   },
+   "devDependencies": {
+      "@types/node": "^8.0.29",
+      "nodemon": "^2.0.6",
+      "ts-node": "3.3.0",
+      "typescript": "3.3.3333"
+   }
 }

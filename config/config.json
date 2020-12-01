@@ -1,9 +1,0 @@
-{
-  "development": {
-    "username": "dev",
-    "password": "dev",
-    "database": "kiv_pia_backend",
-    "host": "postgres",
-    "dialect": "postgres"
-  }
-}

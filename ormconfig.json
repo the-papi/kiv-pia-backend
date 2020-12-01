@@ -1,0 +1,24 @@
+{
+   "type": "postgres",
+   "host": "postgres",
+   "port": 5432,
+   "username": "dev",
+   "password": "dev",
+   "database": "kiv_pia_backend",
+   "synchronize": false,
+   "logging": false,
+   "entities": [
+      "src/entity/**/*.ts"
+   ],
+   "migrations": [
+      "src/migration/**/*.ts"
+   ],
+   "subscribers": [
+      "src/subscriber/**/*.ts"
+   ],
+   "cli": {
+      "entitiesDir": "src/entity",
+      "migrationsDir": "src/migration",
+      "subscribersDir": "src/subscriber"
+   }
+}
