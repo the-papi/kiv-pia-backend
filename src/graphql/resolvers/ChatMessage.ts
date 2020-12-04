@@ -12,7 +12,7 @@ class ChatMessageInput {
     message: string;
 }
 
-@Resolver(User)
+@Resolver(ChatMessage)
 export class ChatMessageResolver {
 
     @Inject()
@@ -40,7 +40,7 @@ export class ChatMessageResolver {
     @Subscription({
         topics: "CHAT_NEW_MESSAGE",
         filter: async ({payload, context}) =>
-            (await (await context.user).activeLobby).id == (await (await payload.from).activeLobby).id
+            (await (await context.user).lobby).id == (await (await payload.from).lobby).id
             && (await context.user).id != (await payload.from).id,
     })
     newChatMessage(@Root() chatMessage: ChatMessage): ChatMessage {

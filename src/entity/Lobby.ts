@@ -1,4 +1,4 @@
-import {Entity, PrimaryGeneratedColumn, Column, Index, ManyToMany, JoinTable, OneToMany} from "typeorm";
+import {Entity, PrimaryGeneratedColumn, Column, OneToMany} from "typeorm";
 import {User} from "./User";
 import {ChatMessage} from "./ChatMessage";
 
@@ -11,9 +11,9 @@ export class Lobby {
     @Column()
     name: string;
 
-    @ManyToMany(() => User, user => user.lobbies)
-    users: User[];
+    @OneToMany(() => User, user => user.lobby)
+    users: Promise<User[]>;
 
     @OneToMany(() => ChatMessage, chatMessage => chatMessage.lobby)
-    chatMessages: ChatMessage[];
+    chatMessages: Promise<ChatMessage[]>;
 }

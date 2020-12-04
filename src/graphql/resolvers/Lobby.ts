@@ -1,0 +1,81 @@
+import {Inject} from "typedi";
+import {Query, Mutation, InputType, Field, Arg, Ctx, Resolver, createUnionType} from "type-graphql";
+import {LobbyService} from "../../services/LobbyService";
+import {AlreadyJoined, Lobby} from "../typedefs/Lobby";
+
+const CreateLobbyResultUnion = createUnionType({
+    name: "CreateLobbyResult",
+    types: () => [AlreadyJoined, Lobby] as const,
+})
+
+const JoinLobbyResultUnion = createUnionType({
+    name: "JoinLobbyResult",
+    types: () => [AlreadyJoined, Lobby] as const,
+})
+
+@InputType()
+class CreateLobbyInput {
+    @Field()
+    name: string;
+}
+
+@InputType()
+class JoinLobbyInput {
+    @Field()
+    id: number;
+}
+
+@Resolver(Lobby)
+export class LobbyResolver {
+
+    @Inject()
+    private readonly lobbyService: LobbyService
+
+    @Query(returns => [Lobby])
+    async lobbies(): Promise<Lobby[]> {
+        return this.lobbyService.all();
+    }
+
+    @Mutation(returns => CreateLobbyResultUnion)
+    async createLobby(
+        @Arg("input") input: CreateLobbyInput,
+        @Ctx() context,
+    ): Promise<typeof CreateLobbyResultUnion> {
+        if ((await (await context.user).lobby)) {
+            let alreadyJoined = new AlreadyJoined();
+            alreadyJoined.message = "You can't create new lobby, because you are already joined in another lobby."
+
+            return alreadyJoined;
+        }
+
+        let lobby = await this.lobbyService.save(await this.lobbyService.create(input));
+        lobby = await this.lobbyService.join(await context.user, lobby);
+
+        let lobbyResult = new Lobby();
+        lobbyResult.id = lobby.id;
+        lobbyResult.name = lobby.name;
+
+        return lobbyResult;
+    }
+
+    @Mutation(returns => JoinLobbyResultUnion)
+    async joinLobby(
+        @Arg("input") input: JoinLobbyInput,
+        @Ctx() context,
+    ): Promise<typeof JoinLobbyResultUnion> {
+        return this.lobbyService.join(await context.user, input.id)
+            .then(value => {
+                    let lobby = new Lobby();
+                    lobby.id = value.id;
+                    lobby.name = value.name;
+
+                    return lobby;
+                }
+            ).catch(e => {
+                let alreadyJoined = new AlreadyJoined();
+                alreadyJoined.message = e.message;
+
+                return alreadyJoined;
+            });
+    }
+}

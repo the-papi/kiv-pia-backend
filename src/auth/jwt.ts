@@ -4,7 +4,7 @@ import {User} from "../entity/User";
 import config from "../config";
 
 type TokenType = "access" | "refresh";
-type JWTPayload = null | { [key: string]: any } | string;
+export type JWTPayload = null | { [key: string]: any } | string;
 
 abstract class Token {
     protected tokenType: TokenType;

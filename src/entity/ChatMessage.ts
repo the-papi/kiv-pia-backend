@@ -8,10 +8,10 @@ export class ChatMessage {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @ManyToOne(() => User, user => user.chatMessages)
+    @ManyToOne(() => User, user => user.chatMessages, {onDelete: "CASCADE"})
     from: User;
 
-    @ManyToOne(() => Lobby, lobby => lobby.chatMessages)
+    @ManyToOne(() => Lobby, lobby => lobby.chatMessages, {onDelete: "CASCADE"})
     lobby: Lobby;
 
     @Column({type: "text"})

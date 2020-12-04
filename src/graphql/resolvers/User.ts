@@ -1,12 +1,15 @@
 import {Inject} from "typedi";
-import {Mutation, Query, Resolver, InputType, Field, Arg, Ctx} from "type-graphql";
-import {User} from "../typedefs/User";
-import {RegisterResponse} from "../typedefs/RegisterResponse";
+import {Mutation, Resolver, InputType, Field, Arg, Ctx, createUnionType} from "type-graphql";
+import {User, UsernameAlreadyUsed} from "../typedefs/User";
 import {authenticate} from "../../auth";
 import {UserService} from "../../services/UserService";
-import config from "../../config";
 import {JWT} from "../typedefs/JWT";
 import {forUser as JWTForUser} from "../../auth/jwt";
+
+const RegisterResultUnion = createUnionType({
+    name: "RegisterResult",
+    types: () => [User, UsernameAlreadyUsed] as const,
+})
 
 @InputType()
 class LoginInput {
@@ -38,11 +41,6 @@ export class UserResolver {
     @Inject()
     private readonly userService: UserService
 
-    @Query()
-    placeholder(): string {
-        return "hello there"
-    }
-
     @Mutation(returns => JWT, {nullable: true})
     async login(
         @Arg("input") input: LoginInput,
@@ -58,21 +56,24 @@ export class UserResolver {
         }
     }
 
-    @Mutation(returns => RegisterResponse)
+    @Mutation(returns => RegisterResultUnion)
     async register(
         @Arg("input") input: RegisterInput
-    ): Promise<RegisterResponse> {
-        let response = new RegisterResponse();
-        try {
-            await this.userService.save(await this.userService.create(input));
-            response.success = true;
-        } catch (e) {
-            response.success = false;
-            response.validationErrors = [
-                {field: "username", messages: ["This username is already in use."]}
-            ]
-        }
+    ): Promise<typeof RegisterResultUnion> {
+        return this.userService.save(await this.userService.create(input))
+            .then(value => {
+                let user = new User();
+                user.username = value.username;
+                user.firstName = value.firstName;
+                user.lastName = value.lastName;
 
-        return response;
+                return user;
+            })
+            .catch(e => {
+                 let usernameAlreadyUsed = new UsernameAlreadyUsed();
+                 usernameAlreadyUsed.message = "This username is already in use.";
+
+                 return usernameAlreadyUsed;
+            });
     }
 }

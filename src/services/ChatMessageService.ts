@@ -12,7 +12,7 @@ export class ChatMessageService {
     }): Promise<ChatMessage> {
         let chatMessageRepository = getRepository(ChatMessage);
         let chatMessage = chatMessageRepository.create(data);
-        chatMessage.lobby = await data.from.activeLobby;
+        chatMessage.lobby = await data.from.lobby;
 
         return chatMessage;
     }

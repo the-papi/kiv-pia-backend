@@ -2,7 +2,7 @@ import * as jwt from "jsonwebtoken"
 import {getRepository} from "typeorm";
 import {User} from "../entity/User";
 import config from "../config"
-import {AccessToken} from "./jwt";
+import {AccessToken, JWTPayload} from "./jwt";
 
 export async function authenticate(request, credentials: {
     username: string | null,
@@ -30,7 +30,12 @@ export async function getUser(data: {request?, connectionParams?}): Promise<User
         return null;
     }
 
-    let payload = (new AccessToken(token)).verify();
+    let payload: JWTPayload;
+    try {
+        payload = (new AccessToken(token)).verify();
+    } catch (e) {
+        return null;
+    }
 
     if (!payload || !(payload["userId"] ?? null)) {
         return null;

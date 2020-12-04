@@ -8,6 +8,7 @@ import {createConnection} from "typeorm";
 import {buildSchema} from "type-graphql";
 import {UserResolver} from "./graphql/resolvers/User";
 import {ChatMessageResolver} from "./graphql/resolvers/ChatMessage";
+import {LobbyResolver} from "./graphql/resolvers/Lobby";
 import {Container} from "typedi";
 import {getUser} from "./auth";
 
@@ -17,7 +18,8 @@ createConnection().then(async connection => {
         schema: await buildSchema({
             resolvers: [
                 UserResolver,
-                ChatMessageResolver
+                ChatMessageResolver,
+                LobbyResolver
             ], container: Container
         }),
         context: ({req, connection}) => {

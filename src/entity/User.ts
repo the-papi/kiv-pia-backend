@@ -25,12 +25,8 @@ export class User {
     @Column({default: true})
     active: boolean;
 
-    @ManyToMany(() => Lobby, lobby => lobby.users)
-    @JoinTable()
-    lobbies: Lobby[];
-
-    @ManyToOne(() => Lobby, {nullable: true})
-    activeLobby: Promise<Lobby>;
+    @ManyToOne(() => Lobby, {nullable: true, onDelete: "CASCADE"})
+    lobby: Promise<Lobby>;
 
     @OneToMany(() => ChatMessage, chatMessage => chatMessage.from)
     chatMessages: ChatMessage[];
