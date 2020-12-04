@@ -25,11 +25,14 @@ export class User {
     @Column({default: true})
     active: boolean;
 
-    @ManyToOne(() => Lobby, {nullable: true, onDelete: "SET NULL"})
-    lobby: Promise<Lobby>;
-
     @OneToMany(() => ChatMessage, chatMessage => chatMessage.from)
-    chatMessages: ChatMessage[];
+    chatMessages: Promise<ChatMessage[]>;
+
+    @ManyToMany(() => Lobby, lobby => lobby.activeUsers)
+    lobbyHistory: Promise<Lobby[]>;
+
+    @ManyToOne(() => Lobby, lobby => lobby.activeUsers, {onDelete: "SET NULL"})
+    activeLobby: Promise<Lobby>;
 
     set password(password: string) {
         this._password = bcrypt.hashSync(password, 10);

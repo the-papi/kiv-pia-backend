@@ -1,7 +1,9 @@
 import {Inject} from "typedi";
 import {Query, Mutation, InputType, Field, Arg, Ctx, Resolver, createUnionType} from "type-graphql";
-import {LobbyService} from "../../services/LobbyService";
+import {LobbyServiceInterface} from "../../services/LobbyService";
 import {AlreadyJoined, Lobby} from "../typedefs/Lobby";
+import {GameAlreadyStarted, NotInLobby} from "../typedefs/Game";
+import * as exceptions from "../../services/exceptions";
 
 const CreateLobbyResultUnion = createUnionType({
     name: "CreateLobbyResult",
@@ -29,7 +31,7 @@ class JoinLobbyInput {
 export class LobbyResolver {
 
     @Inject()
-    private readonly lobbyService: LobbyService
+    private readonly lobbyService: LobbyServiceInterface
 
     @Query(returns => [Lobby])
     async lobbies(): Promise<Lobby[]> {
@@ -41,7 +43,7 @@ export class LobbyResolver {
         @Arg("input") input: CreateLobbyInput,
         @Ctx() context,
     ): Promise<typeof CreateLobbyResultUnion> {
-        if ((await (await context.user).lobby)) {
+        if ((await (await context.user).activeLobby)) {
             let alreadyJoined = new AlreadyJoined();
             alreadyJoined.message = "You can't create new lobby, because you are already joined in another lobby."
 
@@ -72,10 +74,15 @@ export class LobbyResolver {
                     return lobby;
                 }
             ).catch(e => {
-                let alreadyJoined = new AlreadyJoined();
-                alreadyJoined.message = e.message;
+                let exception: AlreadyJoined;
+                if (e instanceof exceptions.LobbyAlreadyJoined) {
+                    exception = new AlreadyJoined();
+                    exception.message = e?.message;
+                } else {
+                    throw e;
+                }
 
-                return alreadyJoined;
+                return exception;
             });
     }
 }

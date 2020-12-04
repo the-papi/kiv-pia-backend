@@ -2,13 +2,22 @@ import {getRepository} from "typeorm";
 import {Service} from "typedi";
 import {Lobby} from "../entity/Lobby";
 import {User} from "../entity/User";
+import {LobbyAlreadyJoined} from "./exceptions";
 
-class LobbyAlreadyJoined {
-    message: string = "User is already joined in the lobby."
+export interface LobbyServiceInterface {
+    create(data: {
+        name?: string
+    }): Promise<Lobby>;
+
+    save(lobby: Lobby): Promise<Lobby>;
+
+    join(user: User, lobby: Lobby | number): Promise<Lobby>;
+
+    all(): Promise<Lobby[]>;
 }
 
 @Service()
-export class LobbyService {
+class LobbyService implements LobbyServiceInterface {
     async create(data: {
         name?: string
     }): Promise<Lobby> {
@@ -27,12 +36,12 @@ export class LobbyService {
             lobby = await lobbyRepository.findOne({id: lobby});
         }
 
-        if (await user.lobby) {
+        if (await user.activeLobby) {
             throw new LobbyAlreadyJoined();
         }
 
         let userRepository = getRepository(User);
-        user.lobby = Promise.resolve(lobby);
+        user.activeLobby = Promise.resolve(lobby);
         await userRepository.save(user);
 
         return lobby;

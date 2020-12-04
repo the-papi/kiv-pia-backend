@@ -1,43 +1,72 @@
-import * as dotenv from "dotenv";
+// import * as dotenv from "dotenv";
+//
+// dotenv.config();
+//
+// import "reflect-metadata";
+// import {ApolloServer} from "apollo-server";
+// import {createConnection} from "typeorm";
+// import {buildSchema} from "type-graphql";
+// import {UserResolver} from "./graphql/resolvers/User";
+// import {ChatMessageResolver} from "./graphql/resolvers/ChatMessage";
+// import {LobbyResolver} from "./graphql/resolvers/Lobby";
+// import {Container} from "typedi";
+// import {getUser} from "./auth";
+// import {GameResolver} from "./graphql/resolvers/Game";
+//
+// createConnection().then(async connection => {
+//     const server = new ApolloServer({
+//         tracing: true,
+//         schema: await buildSchema({
+//             resolvers: [
+//                 UserResolver,
+//                 ChatMessageResolver,
+//                 LobbyResolver,
+//                 GameResolver
+//             ], container: Container
+//         }),
+//         context: ({req, connection}) => {
+//             if (connection) {
+//                 return connection.context;
+//             }
+//
+//             return {request: req, user: getUser({request: req})}
+//         },
+//         subscriptions: {
+//             onConnect: (connectionParams, webSocket) => {
+//                 return {user: getUser({connectionParams: connectionParams})}
+//             }
+//         },
+//     });
+//
+//     server.listen().then(({url, subscriptionsUrl}) => {
+//         console.log(`🚀  HTTP server ready at ${url}`);
+//         console.log(`🚀  Websocket server ready at ${subscriptionsUrl}`);
+//     });
+// }).catch(error => console.log(error));
 
-dotenv.config();
+import 'reflect-metadata';
+import {Service, Container, Inject} from 'typedi';
 
-import "reflect-metadata";
-import {ApolloServer} from "apollo-server";
-import {createConnection} from "typeorm";
-import {buildSchema} from "type-graphql";
-import {UserResolver} from "./graphql/resolvers/User";
-import {ChatMessageResolver} from "./graphql/resolvers/ChatMessage";
-import {LobbyResolver} from "./graphql/resolvers/Lobby";
-import {Container} from "typedi";
-import {getUser} from "./auth";
+export interface InterfaceClass {
+    helloWorld(): string;
+}
 
-createConnection().then(async connection => {
-    const server = new ApolloServer({
-        tracing: true,
-        schema: await buildSchema({
-            resolvers: [
-                UserResolver,
-                ChatMessageResolver,
-                LobbyResolver
-            ], container: Container
-        }),
-        context: ({req, connection}) => {
-            if (connection) {
-                return connection.context;
-            }
+@Service('InterfaceClass')
+export class InterfaceClassImpl implements InterfaceClass {
+    helloWorld(): string {
+        return 'Hello World!';
+    }
+}
 
-            return {request: req, user: getUser({request: req})}
-        },
-        subscriptions: {
-            onConnect: (connectionParams, webSocket) => {
-                return {user: getUser({connectionParams: connectionParams})}
-            }
-        },
-    });
+class A {
+    @Inject('InterfaceClass')
+    foobar: InterfaceClass;
+}
 
-    server.listen().then(({url, subscriptionsUrl}) => {
-        console.log(`🚀  HTTP server ready at ${url}`);
-        console.log(`🚀  Websocket server ready at ${subscriptionsUrl}`);
-    });
-}).catch(error => console.log(error));
+let a = new A();
+
+console.log(a.foobar);
+console.log(a.foobar instanceof InterfaceClassImpl);
+// returns true
+console.log(a.foobar.helloWorld());
+// returns Hello World!

@@ -9,10 +9,10 @@ export class ChatMessage {
     id: number;
 
     @ManyToOne(() => User, user => user.chatMessages, {onDelete: "CASCADE"})
-    from: User;
+    from: Promise<User>;
 
     @ManyToOne(() => Lobby, lobby => lobby.chatMessages, {onDelete: "CASCADE"})
-    lobby: Lobby;
+    lobby: Promise<Lobby>;
 
     @Column({type: "text"})
     message: string;
