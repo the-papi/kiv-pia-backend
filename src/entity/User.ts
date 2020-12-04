@@ -25,7 +25,7 @@ export class User {
     @Column({default: true})
     active: boolean;
 
-    @ManyToOne(() => Lobby, {nullable: true, onDelete: "CASCADE"})
+    @ManyToOne(() => Lobby, {nullable: true, onDelete: "SET NULL"})
     lobby: Promise<Lobby>;
 
     @OneToMany(() => ChatMessage, chatMessage => chatMessage.from)

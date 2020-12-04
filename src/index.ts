@@ -24,7 +24,6 @@ createConnection().then(async connection => {
         }),
         context: ({req, connection}) => {
             if (connection) {
-                console.log("Connection: ", connection);
                 return connection.context;
             }
 

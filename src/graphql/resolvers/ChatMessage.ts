@@ -30,7 +30,6 @@ export class ChatMessageResolver {
                 message: input.message
             }))
         } catch (e) {
-            console.log(e);
             return false;
         }
 

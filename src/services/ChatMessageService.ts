@@ -21,8 +21,6 @@ export class ChatMessageService {
         let chatMessageRepository = getRepository(ChatMessage);
         await pubSub.publish("CHAT_NEW_MESSAGE", chatMessage)
 
-        console.log(chatMessage);
-
         return chatMessageRepository.save(chatMessage);
     }
 }
