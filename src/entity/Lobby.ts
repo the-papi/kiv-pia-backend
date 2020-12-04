@@ -1,5 +1,6 @@
-import {Entity, PrimaryGeneratedColumn, Column, Index, ManyToMany, JoinTable} from "typeorm";
+import {Entity, PrimaryGeneratedColumn, Column, Index, ManyToMany, JoinTable, OneToMany} from "typeorm";
 import {User} from "./User";
+import {ChatMessage} from "./ChatMessage";
 
 @Entity()
 export class Lobby {
@@ -12,4 +13,7 @@ export class Lobby {
 
     @ManyToMany(() => User, user => user.lobbies)
     users: User[];
+
+    @OneToMany(() => ChatMessage, chatMessage => chatMessage.lobby)
+    chatMessages: ChatMessage[];
 }

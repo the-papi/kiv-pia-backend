@@ -14,6 +14,11 @@ export class UserService {
         let user = userRepository.create(data);
         user.password = data.password; // userRepository.create won't set it for us
 
-        return await userRepository.save(user);
+        return user;
+    }
+
+    async save(user: User) {
+        let userRepository = getRepository(User);
+        return userRepository.save(user);
     }
 }

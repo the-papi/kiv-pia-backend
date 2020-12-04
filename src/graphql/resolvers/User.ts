@@ -64,7 +64,7 @@ export class UserResolver {
     ): Promise<RegisterResponse> {
         let response = new RegisterResponse();
         try {
-            await this.userService.create(input);
+            await this.userService.save(await this.userService.create(input));
             response.success = true;
         } catch (e) {
             response.success = false;

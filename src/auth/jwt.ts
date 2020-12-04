@@ -4,11 +4,11 @@ import {User} from "../entity/User";
 import config from "../config";
 
 type TokenType = "access" | "refresh";
-type PayloadType = null | { [key: string]: any } | string;
+type JWTPayload = null | { [key: string]: any } | string;
 
 abstract class Token {
     protected tokenType: TokenType;
-    private _payload: PayloadType;
+    private _payload: JWTPayload;
     private readonly token: string;
 
     protected constructor(token?: string) {
@@ -19,12 +19,12 @@ abstract class Token {
         }
     }
 
-    set payload(payload: PayloadType) {
+    set payload(payload: JWTPayload) {
         this._payload = payload;
         this._payload["tokenType"] = this.tokenType;
     }
 
-    get payload(): PayloadType {
+    get payload(): JWTPayload {
         return this._payload;
     }
 
@@ -35,7 +35,7 @@ abstract class Token {
         })
     }
 
-    verify(): PayloadType {
+    verify(): JWTPayload {
         let data = jwt.verify(this.token, config.secretKey);
 
         if (this.tokenType != data["tokenType"]) {

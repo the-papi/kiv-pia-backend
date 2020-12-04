@@ -19,8 +19,12 @@ export async function authenticate(request, credentials: {
     return user;
 }
 
-export async function getUser(request): Promise<User | null> {
-    let token = request.headers.authorization?.split(" ")[1];
+export async function getUser(data: {request?, connectionParams?}): Promise<User | null> {
+    let token = data.request?.headers?.authorization?.split(" ")[1];
+
+    if (!token) {
+        token = data.connectionParams?.Authorization?.split(" ")[1];
+    }
 
     if (!token) {
         return null;
@@ -28,11 +32,11 @@ export async function getUser(request): Promise<User | null> {
 
     let payload = (new AccessToken(token)).verify();
 
-    if (!payload || !(payload["id"] ?? null)) {
+    if (!payload || !(payload["userId"] ?? null)) {
         return null;
     }
 
     let userRepository = getRepository(User);
 
-    return userRepository.findOne({ id: payload["id"] });
+    return userRepository.findOne({ id: payload["userId"] });
 }
