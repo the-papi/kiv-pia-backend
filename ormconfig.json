@@ -5,7 +5,7 @@
    "username": "dev",
    "password": "dev",
    "database": "kiv_pia_backend",
-   "synchronize": false,
+   "synchronize": true,
    "logging": false,
    "entities": [
       "src/entity/**/*.ts"
