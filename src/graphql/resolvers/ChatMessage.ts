@@ -2,7 +2,7 @@ import * as apollo from "apollo-server";
 import {Query, Mutation, Subscription, Resolver, InputType, Field, Arg, Ctx, PubSub, Root} from "type-graphql";
 import {ChatMessage} from "../typedefs/ChatMessage";
 import {ChatMessageService} from "../../services/types";
-import {inject} from "tsyringe";
+import {inject, injectable} from "tsyringe";
 
 @InputType()
 class ChatMessageInput {
@@ -11,6 +11,7 @@ class ChatMessageInput {
 }
 
 @Resolver(ChatMessage)
+@injectable()
 export class ChatMessageResolver {
 
     private readonly chatMessageService: ChatMessageService;

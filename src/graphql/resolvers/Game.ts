@@ -3,7 +3,7 @@ import {Query, Mutation, Subscription, Resolver, InputType, Field, Arg, Ctx, Pub
 import * as exceptions from "../../services/exceptions";
 import {Game, GameAlreadyStarted, NotInLobby} from "../typedefs/Game";
 import {GameService} from "../../services/types";
-import {inject} from "tsyringe";
+import {inject, injectable} from "tsyringe";
 
 const StartGameResultUnion = createUnionType({
     name: "StartGameResult",
@@ -11,6 +11,7 @@ const StartGameResultUnion = createUnionType({
 })
 
 @Resolver(Game)
+@injectable()
 export class GameResolver {
 
     private readonly gameService: GameService;

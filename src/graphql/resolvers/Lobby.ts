@@ -2,7 +2,7 @@ import {Query, Mutation, InputType, Field, Arg, Ctx, Resolver, createUnionType} 
 import {AlreadyJoined, Lobby} from "../typedefs/Lobby";
 import * as exceptions from "../../services/exceptions";
 import {LobbyService} from "../../services/types";
-import {inject} from "tsyringe";
+import {inject, injectable} from "tsyringe";
 
 const CreateLobbyResultUnion = createUnionType({
     name: "CreateLobbyResult",
@@ -27,6 +27,7 @@ class JoinLobbyInput {
 }
 
 @Resolver(Lobby)
+@injectable()
 export class LobbyResolver {
 
     private readonly lobbyService: LobbyService;
