@@ -1,7 +1,8 @@
 import * as apollo from "apollo-server";
-import {Inject} from "typedi";
 import {Query, Mutation, Subscription, Resolver, InputType, Field, Arg, Ctx, PubSub, Root} from "type-graphql";
 import {ChatMessage} from "../typedefs/ChatMessage";
+import {ChatMessageService} from "../../services/types";
+import {inject} from "tsyringe";
 
 @InputType()
 class ChatMessageInput {
@@ -12,8 +13,11 @@ class ChatMessageInput {
 @Resolver(ChatMessage)
 export class ChatMessageResolver {
 
-    @Inject("ChatMessageService")
-    private readonly chatMessageService;
+    private readonly chatMessageService: ChatMessageService;
+
+    constructor(@inject("ChatMessageService") chatMessageService: ChatMessageService) {
+        this.chatMessageService = chatMessageService;
+    }
 
     @Mutation(returns => Boolean)
     async sendChatMessage(
@@ -27,7 +31,6 @@ export class ChatMessageResolver {
                 message: input.message
             }))
         } catch (e) {
-            console.log(e);
             return false;
         }
 

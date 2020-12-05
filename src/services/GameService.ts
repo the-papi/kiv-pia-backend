@@ -1,8 +1,8 @@
 import {getConnection, getRepository} from "typeorm";
-import {Lobby} from "../../entity/Lobby";
-import {User} from "../../entity/User";
-import {Game} from "../../entity/Game";
-import {GameAlreadyStarted, NotInLobby} from "../exceptions";
+import {Lobby} from "../entity/Lobby";
+import {User} from "../entity/User";
+import {Game} from "../entity/Game";
+import {GameAlreadyStarted, NotInLobby} from "./exceptions";
 
 export class GameService {
     async startForUser(user: User): Promise<Game> {

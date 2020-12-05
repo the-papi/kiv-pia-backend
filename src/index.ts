@@ -3,7 +3,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 import "reflect-metadata";
-import Container from "./typedi.config";
+import {container} from "./tsyringe.config";
 import {ApolloServer} from "apollo-server";
 import {createConnection} from "typeorm";
 import {buildSchema} from "type-graphql";
@@ -22,7 +22,9 @@ createConnection().then(async connection => {
                 ChatMessageResolver,
                 LobbyResolver,
                 GameResolver
-            ], container: Container
+            ], container: {
+                get: someClass => container.resolve(someClass)
+            }
         }),
         context: ({req, connection}) => {
             if (connection) {

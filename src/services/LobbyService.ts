@@ -1,7 +1,7 @@
 import {getRepository} from "typeorm";
-import {Lobby} from "../../entity/Lobby";
-import {User} from "../../entity/User";
-import {LobbyAlreadyJoined} from "../exceptions";
+import {Lobby} from "../entity/Lobby";
+import {User} from "../entity/User";
+import {LobbyAlreadyJoined} from "./exceptions";
 
 export class LobbyService {
     async create(data: {

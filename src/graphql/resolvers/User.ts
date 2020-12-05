@@ -1,10 +1,10 @@
-import {Inject, Service} from "typedi";
 import {Mutation, Resolver, InputType, Field, Arg, Ctx, createUnionType} from "type-graphql";
 import {User, UsernameAlreadyUsed} from "../typedefs/User";
 import {authenticate} from "../../auth";
 import {JWT} from "../typedefs/JWT";
 import {forUser as JWTForUser} from "../../auth/jwt";
-import {ClassType, UserServiceInterface} from "../../services/implementation/UserService";
+import {inject, injectable} from "tsyringe";
+import {UserService} from "../../services/types";
 
 const RegisterResultUnion = createUnionType({
     name: "RegisterResult",
@@ -36,10 +36,14 @@ class RegisterInput {
 }
 
 @Resolver(User)
+@injectable()
 export class UserResolver {
 
-    @Inject({name: "FoobarName"})
-    private readonly userService;
+    private readonly userService: UserService;
+
+    constructor(@inject("UserService") userService: UserService) {
+        this.userService = userService;
+    }
 
     @Mutation(returns => JWT, {nullable: true})
     async login(
