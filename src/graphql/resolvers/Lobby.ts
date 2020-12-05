@@ -1,8 +1,6 @@
 import {Inject} from "typedi";
 import {Query, Mutation, InputType, Field, Arg, Ctx, Resolver, createUnionType} from "type-graphql";
-import {LobbyServiceInterface} from "../../services/LobbyService";
 import {AlreadyJoined, Lobby} from "../typedefs/Lobby";
-import {GameAlreadyStarted, NotInLobby} from "../typedefs/Game";
 import * as exceptions from "../../services/exceptions";
 
 const CreateLobbyResultUnion = createUnionType({
@@ -30,8 +28,8 @@ class JoinLobbyInput {
 @Resolver(Lobby)
 export class LobbyResolver {
 
-    @Inject()
-    private readonly lobbyService: LobbyServiceInterface
+    @Inject("LobbyService")
+    private readonly lobbyService;
 
     @Query(returns => [Lobby])
     async lobbies(): Promise<Lobby[]> {

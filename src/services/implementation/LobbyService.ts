@@ -1,23 +1,9 @@
 import {getRepository} from "typeorm";
-import {Service} from "typedi";
-import {Lobby} from "../entity/Lobby";
-import {User} from "../entity/User";
-import {LobbyAlreadyJoined} from "./exceptions";
+import {Lobby} from "../../entity/Lobby";
+import {User} from "../../entity/User";
+import {LobbyAlreadyJoined} from "../exceptions";
 
-export interface LobbyServiceInterface {
-    create(data: {
-        name?: string
-    }): Promise<Lobby>;
-
-    save(lobby: Lobby): Promise<Lobby>;
-
-    join(user: User, lobby: Lobby | number): Promise<Lobby>;
-
-    all(): Promise<Lobby[]>;
-}
-
-@Service()
-class LobbyService implements LobbyServiceInterface {
+export class LobbyService {
     async create(data: {
         name?: string
     }): Promise<Lobby> {

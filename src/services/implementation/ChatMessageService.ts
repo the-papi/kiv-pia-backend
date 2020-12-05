@@ -1,10 +1,8 @@
 import * as apollo from "apollo-server";
 import {getRepository} from "typeorm";
-import {Service} from "typedi";
-import {User} from "../entity/User";
-import {ChatMessage} from "../entity/ChatMessage";
+import {User} from "../../entity/User";
+import {ChatMessage} from "../../entity/ChatMessage";
 
-@Service()
 export class ChatMessageService {
     async create(data: {
         from: User,

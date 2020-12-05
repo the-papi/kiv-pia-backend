@@ -2,7 +2,6 @@ import * as apollo from "apollo-server";
 import {Inject} from "typedi";
 import {Query, Mutation, Subscription, Resolver, InputType, Field, Arg, Ctx, PubSub, Root, createUnionType} from "type-graphql";
 import * as exceptions from "../../services/exceptions";
-import {GameService} from "../../services/GameService";
 import {Game, GameAlreadyStarted, NotInLobby} from "../typedefs/Game";
 
 const StartGameResultUnion = createUnionType({
@@ -13,8 +12,8 @@ const StartGameResultUnion = createUnionType({
 @Resolver(Game)
 export class GameResolver {
 
-    @Inject()
-    private readonly gameService: GameService
+    @Inject("GameService")
+    private readonly gameService;
 
     @Mutation(returns => StartGameResultUnion)
     async startGame(

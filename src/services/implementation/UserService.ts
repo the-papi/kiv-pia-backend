@@ -1,8 +1,9 @@
 import {getRepository} from "typeorm";
-import {Service} from "typedi";
-import {User} from "../entity/User";
+import {User} from "../../entity/User";
+import {Container, Service} from "typedi";
 
-@Service()
+
+@Service({name: "FoobarName"})
 export class UserService {
     async create(data: {
         firstName: string
