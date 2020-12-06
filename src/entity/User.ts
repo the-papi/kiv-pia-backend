@@ -1,7 +1,7 @@
 import {Entity, PrimaryGeneratedColumn, Column, Index, ManyToMany, JoinTable, OneToMany, ManyToOne} from "typeorm";
 import * as bcrypt from "bcryptjs";
-import {Lobby} from "./Lobby";
 import {ChatMessage} from "./ChatMessage";
+import {Player} from "./Player";
 
 @Entity()
 export class User {
@@ -25,11 +25,8 @@ export class User {
     @OneToMany(() => ChatMessage, chatMessage => chatMessage.from)
     chatMessages: Promise<ChatMessage[]>;
 
-    @ManyToMany(() => Lobby, lobby => lobby.activeUsers)
-    lobbyHistory: Promise<Lobby[]>;
-
-    @ManyToOne(() => Lobby, lobby => lobby.activeUsers, {onDelete: "SET NULL"})
-    activeLobby: Promise<Lobby>;
+    @OneToMany(() => Player, player => player.user)
+    players: Promise<Player[]>;
 
     set password(password: string) {
         this._password = bcrypt.hashSync(password, 10);

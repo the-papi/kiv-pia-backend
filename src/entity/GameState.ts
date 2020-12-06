@@ -1,6 +1,5 @@
 import {Entity, PrimaryGeneratedColumn, Column, Index, ManyToMany, JoinTable, OneToMany, ManyToOne, OneToOne, JoinColumn} from "typeorm";
-import {Game} from "./Game";
-import {User} from "./User";
+import {Player} from "./Player";
 
 @Entity()
 export class GameState {
@@ -8,11 +7,8 @@ export class GameState {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @ManyToOne(() => Game, {onDelete: "CASCADE"})
-    game: Promise<Game>;
-
-    @ManyToOne(() => User, {onDelete: "CASCADE"})
-    user: Promise<User>;
+    @ManyToOne(() => Player, player => player.gameStates, {onDelete: "CASCADE"})
+    player: Promise<Player>;
 
     @Column()
     x: number;

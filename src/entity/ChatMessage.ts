@@ -1,6 +1,6 @@
 import {Entity, PrimaryGeneratedColumn, Column, ManyToOne} from "typeorm";
 import {User} from "./User";
-import {Lobby} from "./Lobby";
+import {Game} from "./Game";
 
 @Entity()
 export class ChatMessage {
@@ -11,8 +11,8 @@ export class ChatMessage {
     @ManyToOne(() => User, user => user.chatMessages, {onDelete: "CASCADE"})
     from: Promise<User>;
 
-    @ManyToOne(() => Lobby, lobby => lobby.chatMessages, {onDelete: "CASCADE"})
-    lobby: Promise<Lobby>;
+    @ManyToOne(() => Game, game => game.chatMessages, {onDelete: "CASCADE"})
+    game: Promise<Game>;
 
     @Column({type: "text"})
     message: string;
