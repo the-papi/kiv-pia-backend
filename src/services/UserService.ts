@@ -1,10 +1,12 @@
+import * as apollo from "apollo-server";
 import {getRepository} from "typeorm";
+import * as types from "./types"
 import {User} from "../entity/User";
+import {UserStatus} from "../graphql/typedefs/UserStatusUpdate";
 
-export class UserService {
+export class UserService implements types.UserService {
     async create(data: {
-        firstName: string
-        lastName: string
+        email: string
         username: string
         password: string
     }): Promise<User> {
@@ -18,5 +20,12 @@ export class UserService {
     async save(user: User) {
         let userRepository = getRepository(User);
         return userRepository.save(user);
+    }
+
+    async online(pubSub: apollo.PubSub, user: User) {
+        await pubSub.publish("USER_STATUS_UPDATE", {
+            status: UserStatus.Online,
+            user: user
+        })
     }
 }

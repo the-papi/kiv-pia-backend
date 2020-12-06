@@ -1,9 +1,10 @@
 import {getRepository} from "typeorm";
+import * as types from "./types"
 import {Lobby} from "../entity/Lobby";
 import {User} from "../entity/User";
 import {LobbyAlreadyJoined} from "./exceptions";
 
-export class LobbyService {
+export class LobbyService implements types.LobbyService {
     async create(data: {
         name?: string
     }): Promise<Lobby> {

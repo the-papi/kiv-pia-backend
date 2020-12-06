@@ -10,10 +10,7 @@ export class User {
     id: number;
 
     @Column()
-    firstName: string;
-
-    @Column()
-    lastName: string;
+    email: string;
 
     @Column()
     @Index({unique: true})

@@ -1,10 +1,11 @@
 import {getConnection, getRepository} from "typeorm";
+import * as types from "./types"
 import {Lobby} from "../entity/Lobby";
 import {User} from "../entity/User";
 import {Game} from "../entity/Game";
 import {GameAlreadyStarted, NotInLobby} from "./exceptions";
 
-export class GameService {
+export class GameService implements types.GameService {
     async startForUser(user: User): Promise<Game> {
         let lobby = await user.activeLobby;
         if (!lobby) {

@@ -42,7 +42,7 @@ export class LobbyResolver {
     }
 
     @Mutation(returns => CreateLobbyResultUnion)
-    async createLobby(
+    async createAndJoinLobby(
         @Arg("input") input: CreateLobbyInput,
         @Ctx() context,
     ): Promise<typeof CreateLobbyResultUnion> {

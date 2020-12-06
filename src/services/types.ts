@@ -3,6 +3,7 @@ import {ChatMessage} from "../entity/ChatMessage";
 import {Game} from "../entity/Game";
 import {Lobby} from "../entity/Lobby";
 import {User} from "../entity/User";
+import {Field, ObjectType} from "type-graphql";
 
 export interface ChatMessageService {
     create(data: {
@@ -33,11 +34,12 @@ export interface LobbyService {
 
 export interface UserService {
     create(data: {
-        firstName: string
-        lastName: string
+        email: string
         username: string
         password: string
     }): Promise<User>;
 
     save(user: User);
+
+    online(pubSub: apollo.PubSubEngine, user: User);
 }

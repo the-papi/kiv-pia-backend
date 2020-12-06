@@ -1,10 +1,11 @@
-import {Mutation, Resolver, InputType, Field, Arg, Ctx, createUnionType} from "type-graphql";
+import {Mutation, Resolver, InputType, Field, Arg, Ctx, createUnionType, Subscription, Root} from "type-graphql";
 import {User, UsernameAlreadyUsed} from "../typedefs/User";
 import {authenticate} from "../../auth";
 import {JWT} from "../typedefs/JWT";
 import {forUser as JWTForUser} from "../../auth/jwt";
 import {inject, injectable} from "tsyringe";
 import {UserService} from "../../services/types";
+import {ChatMessage} from "../typedefs/ChatMessage";
 
 const RegisterResultUnion = createUnionType({
     name: "RegisterResult",
@@ -23,10 +24,7 @@ class LoginInput {
 @InputType()
 class RegisterInput {
     @Field()
-    firstName: string;
-
-    @Field()
-    lastName: string;
+    email: string;
 
     @Field()
     username: string;
@@ -68,8 +66,7 @@ export class UserResolver {
             .then(value => {
                 let user = new User();
                 user.username = value.username;
-                user.firstName = value.firstName;
-                user.lastName = value.lastName;
+                user.email = value.email;
 
                 return user;
             })
@@ -79,5 +76,12 @@ export class UserResolver {
 
                  return usernameAlreadyUsed;
             });
+    }
+
+    @Subscription({
+        topics: "USER_STATUS_UPDATE",
+    })
+    userList(@Root() user: User): User {
+        return user;
     }
 }
