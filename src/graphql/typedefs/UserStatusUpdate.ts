@@ -2,7 +2,8 @@ import {ObjectType, Field, registerEnumType} from "type-graphql";
 import {User} from "./User";
 
 export enum UserStatus {
-    Online
+    Online,
+    Offline
 }
 
 registerEnumType(UserStatus, {

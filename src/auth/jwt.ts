@@ -31,7 +31,7 @@ abstract class Token {
     toString(): string {
         return jwt.sign(this.payload, config.secretKey, {
             expiresIn: config.jwt.accessExpireIn,
-            algorithm: <JWTAlgorithm>config.jwt.algorithm,
+            algorithm: config.jwt.algorithm as JWTAlgorithm,
         })
     }
 

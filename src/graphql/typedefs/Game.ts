@@ -1,10 +1,10 @@
 import {ObjectType, Field} from "type-graphql";
-import {User} from "./User";
+import {Player} from "./Player";
 
 @ObjectType()
 export class Game {
-    @Field(type => [User])
-    players: User[];
+    @Field(type => [Player])
+    players: Player[];
 }
 
 @ObjectType()
@@ -14,7 +14,13 @@ export class GameAlreadyStarted {
 }
 
 @ObjectType()
-export class NotInLobby {
+export class GameDoesntExist {
+    @Field()
+    message: string;
+}
+
+@ObjectType()
+export class PlayerAlreadyInGame {
     @Field()
     message: string;
 }

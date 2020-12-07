@@ -22,10 +22,9 @@ export class UserService implements types.UserService {
         return userRepository.save(user);
     }
 
-    async online(pubSub: apollo.PubSub, user: User) {
+    async setStatus(pubSub: apollo.PubSub, user: User, status: UserStatus) {
         await pubSub.publish("USER_STATUS_UPDATE", {
-            status: UserStatus.Online,
-            user: user
+            status, user
         })
     }
 }

@@ -7,7 +7,7 @@ export class GameState {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @ManyToOne(() => Player, player => player.gameStates, {onDelete: "CASCADE"})
+    @ManyToOne(() => Player, player => player.gameStates, {nullable: false, onDelete: "CASCADE"})
     player: Promise<Player>;
 
     @Column()

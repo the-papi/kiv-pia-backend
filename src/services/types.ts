@@ -1,9 +1,10 @@
 import * as apollo from "apollo-server";
 import {ChatMessage} from "../entity/ChatMessage";
 import {Game} from "../entity/Game";
-import {Lobby} from "../entity/Lobby";
 import {User} from "../entity/User";
-import {Field, ObjectType} from "type-graphql";
+import {UserStatus} from "../graphql/typedefs/UserStatusUpdate";
+import {Player} from "../entity/Player";
+import {RedisClient} from "redis";
 
 export interface ChatMessageService {
     create(data: {
@@ -15,21 +16,10 @@ export interface ChatMessageService {
 }
 
 export interface GameService {
-    startForUser(user: User): Promise<Game>;
-
-    players(game: Game): Promise<User[]>;
-}
-
-export interface LobbyService {
-    create(data: {
-        name?: string
-    }): Promise<Lobby>;
-
-    save(lobby: Lobby): Promise<Lobby>;
-
-    join(user: User, lobby: Lobby | number): Promise<Lobby>;
-
-    all(): Promise<Lobby[]>;
+    startGame(pubSub: apollo.PubSub, users: User[]): Promise<Game>;
+    sendGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, fromUser: User, targetUserId: number): Promise<string | null>;
+    acceptGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, requestId: string): Promise<User[]>;
+    getPlayers(game: Game): Promise<Player[]>;
 }
 
 export interface UserService {
@@ -41,5 +31,5 @@ export interface UserService {
 
     save(user: User);
 
-    online(pubSub: apollo.PubSubEngine, user: User);
+    setStatus(pubSub: apollo.PubSubEngine, user: User, status: UserStatus);
 }

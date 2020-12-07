@@ -9,7 +9,6 @@ import {createConnection} from "typeorm";
 import {buildSchema} from "type-graphql";
 import {UserResolver} from "./graphql/resolvers/User";
 import {ChatMessageResolver} from "./graphql/resolvers/ChatMessage";
-import {LobbyResolver} from "./graphql/resolvers/Lobby";
 import {getUser} from "./auth";
 import {GameResolver} from "./graphql/resolvers/Game";
 
@@ -20,7 +19,6 @@ createConnection().then(async connection => {
             resolvers: [
                 UserResolver,
                 ChatMessageResolver,
-                LobbyResolver,
                 GameResolver
             ], container: {
                 get: someClass => container.resolve(someClass)

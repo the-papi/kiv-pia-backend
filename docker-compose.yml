@@ -16,3 +16,6 @@ services:
             POSTGRES_USER: dev
             POSTGRES_PASSWORD: dev
             POSTGRES_DB: kiv_pia_backend
+
+    redis:
+        image: redis:6-alpine

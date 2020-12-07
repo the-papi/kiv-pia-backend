@@ -9,8 +9,11 @@ export class Game {
     id: number;
 
     @OneToMany(() => Player, player => player.game)
-    players: Promise<Player>;
+    players: Promise<Player[]>;
 
     @OneToMany(() => ChatMessage, chatMessage => chatMessage.game)
     chatMessages: Promise<ChatMessage[]>;
+
+    @Column({default: true})
+    active: boolean;
 }

@@ -8,10 +8,10 @@ export class ChatMessage {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @ManyToOne(() => User, user => user.chatMessages, {onDelete: "CASCADE"})
+    @ManyToOne(() => User, user => user.chatMessages, {nullable: false, onDelete: "CASCADE"})
     from: Promise<User>;
 
-    @ManyToOne(() => Game, game => game.chatMessages, {onDelete: "CASCADE"})
+    @ManyToOne(() => Game, game => game.chatMessages, {nullable: false, onDelete: "CASCADE"})
     game: Promise<Game>;
 
     @Column({type: "text"})

@@ -15,8 +15,3 @@ export class GameState {
     @Field(type => [User])
     players: User[];
 }
-
-@ObjectType()
-export class Symbol {
-
-}

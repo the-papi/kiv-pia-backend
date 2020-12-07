@@ -1,4 +1,4 @@
-import {Mutation, Resolver, InputType, Field, Arg, Ctx, createUnionType, Subscription, Root} from "type-graphql";
+import {Mutation, Resolver, InputType, Field, Arg, Ctx, createUnionType, Subscription, Root, Query} from "type-graphql";
 import {User, UsernameAlreadyUsed} from "../typedefs/User";
 import {authenticate} from "../../auth";
 import {JWT} from "../typedefs/JWT";
@@ -41,6 +41,11 @@ export class UserResolver {
 
     constructor(@inject("UserService") userService: UserService) {
         this.userService = userService;
+    }
+
+    @Query()
+    placeholder(): string {
+        return "placeholder";
     }
 
     @Mutation(returns => JWT, {nullable: true})
