@@ -12,7 +12,7 @@ registerEnumType(UserStatus, {
 
 @ObjectType()
 export class UserStatusUpdate {
-    @Field()
+    @Field(type => UserStatus)
     status: UserStatus;
 
     @Field()

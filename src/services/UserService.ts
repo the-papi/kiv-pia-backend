@@ -2,7 +2,7 @@ import * as apollo from "apollo-server";
 import {getRepository} from "typeorm";
 import * as types from "./types"
 import {User} from "../entity/User";
-import {UserStatus} from "../graphql/typedefs/UserStatusUpdate";
+import {RedisClient} from "redis";
 
 export class UserService implements types.UserService {
     async create(data: {
@@ -22,9 +22,13 @@ export class UserService implements types.UserService {
         return userRepository.save(user);
     }
 
-    async setStatus(pubSub: apollo.PubSub, user: User, status: UserStatus) {
-        await pubSub.publish("USER_STATUS_UPDATE", {
-            status, user
-        })
+    async setStatus(pubSub: apollo.PubSub, redis: RedisClient, user: User, status: types.UserStatus) {
+        if (status != types.UserStatus.Offline) {
+            redis.rpush("onlineUsers", user.id.toString());
+        } else {
+            redis.lrem("onlineUsers", 1, user.id.toString());
+        }
+
+        await pubSub.publish("USER_STATUS", {status, user})
     }
 }

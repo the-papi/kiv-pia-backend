@@ -1,16 +1,13 @@
 import {ObjectType, Field} from "type-graphql";
 
 @ObjectType()
-export class User {
+export class Profile {
     @Field()
     id: number;
 
     @Field()
     username: string;
-}
 
-@ObjectType()
-export class UsernameAlreadyUsed {
     @Field()
-    message: string;
+    email: string;
 }

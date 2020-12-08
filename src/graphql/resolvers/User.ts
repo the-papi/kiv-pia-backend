@@ -1,11 +1,12 @@
-import {Mutation, Resolver, InputType, Field, Arg, Ctx, createUnionType, Subscription, Root, Query} from "type-graphql";
+import {Arg, createUnionType, Ctx, Field, InputType, Mutation, Query, registerEnumType, Resolver, Root, Subscription} from "type-graphql";
 import {User, UsernameAlreadyUsed} from "../typedefs/User";
 import {authenticate} from "../../auth";
 import {JWT} from "../typedefs/JWT";
 import {forUser as JWTForUser} from "../../auth/jwt";
 import {inject, injectable} from "tsyringe";
 import {UserService} from "../../services/types";
-import {ChatMessage} from "../typedefs/ChatMessage";
+import {UserStatusUpdate} from "../typedefs/UserStatusUpdate";
+import {Profile} from "../typedefs/Profile";
 
 const RegisterResultUnion = createUnionType({
     name: "RegisterResult",
@@ -43,9 +44,9 @@ export class UserResolver {
         this.userService = userService;
     }
 
-    @Query()
-    placeholder(): string {
-        return "placeholder";
+    @Query(returns => Profile)
+    async me(@Ctx() context): Promise<Profile> {
+        return await context.user;
     }
 
     @Mutation(returns => JWT, {nullable: true})
@@ -71,7 +72,6 @@ export class UserResolver {
             .then(value => {
                 let user = new User();
                 user.username = value.username;
-                user.email = value.email;
 
                 return user;
             })
@@ -84,9 +84,12 @@ export class UserResolver {
     }
 
     @Subscription({
-        topics: "USER_STATUS_UPDATE",
+        topics: "USER_STATUS",
     })
-    userList(@Root() user: User): User {
-        return user;
+    userStatus(@Root() userStatus): UserStatusUpdate {
+        return {
+            user: userStatus.user,
+            status: userStatus.status
+        };
     }
 }

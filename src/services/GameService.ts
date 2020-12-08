@@ -2,12 +2,11 @@ import {getConnection, getCustomRepository, getRepository, In} from "typeorm";
 import * as types from "./types"
 import {User} from "../entity/User";
 import {Game} from "../entity/Game";
-import {GameAlreadyStarted, PlayerAlreadyInGame} from "./exceptions";
+import {PlayerAlreadyInGame} from "./exceptions";
 import {UserRepository} from "../repositories/User";
 import {Player} from "../entity/Player";
 import * as apollo from "apollo-server";
 import {RedisClient} from "redis";
-import {GameDoesntExist} from "../graphql/typedefs/Game";
 import * as exceptions from "./exceptions";
 
 function generateRequestId(length: number = 32) {
