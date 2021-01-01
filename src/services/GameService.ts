@@ -1,13 +1,16 @@
-import {getConnection, getCustomRepository, getRepository, In} from "typeorm";
+import {getConnection, getCustomRepository, getRepository} from "typeorm";
 import * as types from "./types"
 import {User} from "../entity/User";
 import {Game} from "../entity/Game";
+import * as exceptions from "./exceptions";
 import {PlayerAlreadyInGame} from "./exceptions";
 import {UserRepository} from "../repositories/User";
-import {Player} from "../entity/Player";
+import {PlayerRepository} from "../repositories/Player";
+import {GameSymbol, Player} from "../entity/Player";
 import * as apollo from "apollo-server";
 import {RedisClient} from "redis";
-import * as exceptions from "./exceptions";
+import {GameState} from "../entity/GameState";
+import {GameStateRepository} from "../repositories/Game";
 
 function generateRequestId(length: number = 32) {
     let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -20,8 +23,12 @@ function generateRequestId(length: number = 32) {
     return str;
 }
 
-
 export class GameService implements types.GameService {
+    async getActiveGame(user: User): Promise<Game> {
+        let userRepository = getCustomRepository(UserRepository);
+        return userRepository.findActiveGame(user);
+    }
+
     async startGame(pubSub: apollo.PubSub, users: User[]): Promise<Game> {
         let userRepository = getCustomRepository(UserRepository);
 
@@ -38,11 +45,16 @@ export class GameService implements types.GameService {
         return getConnection().transaction(async transactionalEntityManager => {
             game = await gameRepository.save(game);
 
+            let gameSymbols = [GameSymbol.Circle, GameSymbol.Cross];
+            let gameSymbolIterator = 0;
             for (let user of users) {
                 let player = new Player();
                 player.game = Promise.resolve(game);
                 player.user = Promise.resolve(user);
+                player.symbol = gameSymbols[gameSymbolIterator];
                 await playerRepository.save(player)
+
+                gameSymbolIterator++;
             }
         }).then(value => game);
     }
@@ -93,9 +105,60 @@ export class GameService implements types.GameService {
                     resolve(userRepository.findByIds([fromUserId, targetUserId]))
                 })
             })
-        })    }
+        })
+    }
 
     async getPlayers(game: Game): Promise<Player[]> {
         return game.players;
+    }
+
+    async isPlayerOnTurn(player: Player): Promise<boolean> {
+        let gameStateRepository = getCustomRepository(GameStateRepository);
+        let crossCount = await gameStateRepository.countSymbols(await player.game, GameSymbol.Cross);
+        let circleCount = await gameStateRepository.countSymbols(await player.game, GameSymbol.Circle);
+
+        return (circleCount == crossCount && player.symbol == GameSymbol.Circle)
+            || (circleCount != crossCount && player.symbol == GameSymbol.Cross);
+    }
+
+    async isFieldOccupied(game: Game, x: number, y: number): Promise<boolean> {
+        let gameStateRepository = getCustomRepository(GameStateRepository);
+        return gameStateRepository.isFieldOccupied(game, x, y);
+    }
+
+    async placeSymbol(pubSub: apollo.PubSubEngine, redis: RedisClient, user: User, x: number, y: number): Promise<boolean> {
+        let playerRepository = getCustomRepository(PlayerRepository);
+        let gameStateRepository = getRepository(GameState);
+        let activePlayer = await playerRepository.findActivePlayer(user);
+
+        if (!await this.isPlayerOnTurn(activePlayer) || await this.isFieldOccupied(await activePlayer.game, x, y)) {
+            return false;
+        }
+
+        let gameState = new GameState();
+        gameState.game = Promise.resolve(activePlayer.game);
+        gameState.player = Promise.resolve(activePlayer);
+        gameState.x = x;
+        gameState.y = y;
+        await gameStateRepository.save(gameState);
+
+        await pubSub.publish("GAME_STATE", {
+            x, y,
+            symbol: activePlayer.symbol,
+            gameId: (await activePlayer.game).id
+        });
+
+        return true;
+    }
+
+    async getGameStates(game: Game): Promise<[{x: number, y: number, symbol: GameSymbol}]> {
+        let gameStateRepository = getRepository(GameState);
+        // @ts-ignore
+        return gameStateRepository.createQueryBuilder("gameState")
+            .select(["x", "y"])
+            .addSelect("player.symbol", "symbol")
+            .innerJoin("gameState.player", "player")
+            .orderBy("gameState.id", "ASC")
+            .getRawMany();
     }
 }

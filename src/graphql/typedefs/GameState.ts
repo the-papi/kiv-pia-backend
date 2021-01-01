@@ -1,7 +1,7 @@
-import {ObjectType, Field, registerEnumType} from "type-graphql";
+import {ObjectType, Field, registerEnumType, Int} from "type-graphql";
 import {User} from "./User";
 
-enum GameSymbol {
+export enum GameSymbol {
     Circle,
     Cross
 }
@@ -12,6 +12,12 @@ registerEnumType(GameSymbol, {
 
 @ObjectType()
 export class GameState {
-    @Field(type => [User])
-    players: User[];
+    @Field(type => Int)
+    x: number;
+
+    @Field(type => Int)
+    y: number;
+
+    @Field(type => GameSymbol)
+    symbol: GameSymbol;
 }

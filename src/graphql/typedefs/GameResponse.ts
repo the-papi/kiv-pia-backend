@@ -7,7 +7,7 @@ export enum GameResponseStatus {
 }
 
 registerEnumType(GameResponseStatus, {
-    name: "GameSymbol"
+    name: "GameResponseStatus"
 });
 
 @ObjectType()

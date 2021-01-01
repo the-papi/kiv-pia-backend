@@ -1,15 +1,17 @@
 import * as apollo from "apollo-server";
-import {Arg, createUnionType, Ctx, Field, InputType, Mutation, PubSub, Resolver, Root, Subscription} from "type-graphql";
+import {Arg, createUnionType, Ctx, Field, FieldResolver, InputType, Int, Mutation, PubSub, Query, Resolver, Root, Subscription} from "type-graphql";
 import * as exceptions from "../../services/exceptions";
 import {GameService} from "../../services/types";
 import {inject, injectable} from "tsyringe";
 import {Player} from "../typedefs/Player";
 import {GameRequest} from "../typedefs/GameRequest";
 import {getRepository} from "typeorm";
+import {Game as GameEntity} from "../../entity/Game";
 import {User} from "../../entity/User";
 import {RedisClient} from "redis";
 import {Game, GameAlreadyStarted, GameDoesntExist, PlayerAlreadyInGame} from "../typedefs/Game";
 import {GameResponse, GameResponseStatus} from "../typedefs/GameResponse";
+import {GameState} from "../typedefs/GameState";
 
 const StartGameResultUnion = createUnionType({
     name: "StartGameResult",
@@ -23,7 +25,7 @@ const GameResponseResultUnion = createUnionType({
 
 @InputType()
 class GameRequestInput {
-    @Field()
+    @Field(() => Int)
     userId: number;
 }
 
@@ -31,6 +33,15 @@ class GameRequestInput {
 class GameResponseInput {
     @Field()
     requestId: string
+}
+
+@InputType()
+class PlaceSymbolInput {
+    @Field(() => Int)
+    x: number;
+
+    @Field(() => Int)
+    y: number;
 }
 
 @Resolver(Game)
@@ -46,6 +57,16 @@ export class GameResolver {
     ) {
         this.gameService = gameService;
         this.redis = redis;
+    }
+
+    @Query(returns => Game, {nullable: true})
+    async activeGame(@Ctx() context) {
+        return this.gameService.getActiveGame(await context.user);
+    }
+
+    @FieldResolver()
+    async gameStates(@Root() game: GameEntity) {
+        return this.gameService.getGameStates(game);
     }
 
     @Mutation(returns => String, {nullable: true})
@@ -84,7 +105,7 @@ export class GameResolver {
                 return this.gameService.startGame(pubSub, users).then(
                     async v => {
                         let game = new Game();
-                        game.players = await this.gameService.getPlayers(v) as unknown as Player[];
+                        game.players = <Player[]><unknown>(await this.gameService.getPlayers(v));
 
                         return game;
                     }
@@ -121,22 +142,20 @@ export class GameResolver {
         };
     }
 
-    // @Mutation()
-    // async placeSymbol(
-    //     @Ctx() context,
-    //     @PubSub() pubSub: apollo.PubSub
-    // ): Promise<null> {
-    //
-    //     return null;
-    // }
+    @Mutation(returns => Boolean)
+    async placeSymbol(
+        @Ctx() context,
+        @PubSub() pubSub: apollo.PubSub,
+        @Arg("input") input: PlaceSymbolInput
+    ): Promise<boolean> {
+        return this.gameService.placeSymbol(pubSub, this.redis, await context.user, input.x, input.y);
+    }
 
-    // @Subscription({
-    //     topics: "CHAT_NEW_MESSAGE",
-    //     filter: async ({payload, context}) =>
-    //         (await (await context.user).activeLobby).id == (await (await payload.from).activeLobby).id
-    //         && (await context.user).id != (await payload.from).id,
-    // })
-    // newGame(@Root() chatMessage: Game): Game {
-    //     return chatMessage;
-    // }
+    @Subscription({
+        topics: "GAME_STATE",
+        filter: async ({payload, context}) => true,
+    })
+    gameState(@Root() gameState: GameState): GameState {
+        return gameState;
+    }
 }

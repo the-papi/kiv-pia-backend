@@ -7,6 +7,7 @@ import {inject, injectable} from "tsyringe";
 import {UserService} from "../../services/types";
 import {UserStatusUpdate} from "../typedefs/UserStatusUpdate";
 import {Profile} from "../typedefs/Profile";
+import {RedisClient} from "redis";
 
 const RegisterResultUnion = createUnionType({
     name: "RegisterResult",
@@ -39,9 +40,14 @@ class RegisterInput {
 export class UserResolver {
 
     private readonly userService: UserService;
+    private readonly redis: RedisClient;
 
-    constructor(@inject("UserService") userService: UserService) {
+    constructor(
+        @inject("UserService") userService: UserService,
+        @inject("redis") redis: RedisClient
+    ) {
         this.userService = userService;
+        this.redis = redis;
     }
 
     @Query(returns => Profile)
@@ -76,17 +82,41 @@ export class UserResolver {
                 return user;
             })
             .catch(e => {
-                 let usernameAlreadyUsed = new UsernameAlreadyUsed();
-                 usernameAlreadyUsed.message = "This username is already in use.";
+                let usernameAlreadyUsed = new UsernameAlreadyUsed();
+                usernameAlreadyUsed.message = "This username is already in use.";
 
-                 return usernameAlreadyUsed;
+                return usernameAlreadyUsed;
             });
+    }
+
+    @Query(returns => [UserStatusUpdate], {nullable: true})
+    async activeUsers(@Ctx() context): Promise<UserStatusUpdate[]> {
+        return new Promise(async (resolve) => {
+            let userStatuses = [];
+
+            for (let user of await this.userService.getAllActiveUsers(this.redis)) {
+                if (user.id == (await context.user).id) {
+                    continue;
+                }
+
+                let userStatus = new UserStatusUpdate();
+                userStatus.user = user;
+                userStatus.status = await this.userService.getStatus(this.redis, user);
+                userStatuses.push(userStatus);
+            }
+
+            resolve(userStatuses);
+        });
     }
 
     @Subscription({
         topics: "USER_STATUS",
+        filter: async ({payload, context}) =>
+            payload && payload.user.id != (await context.user).id
     })
-    userStatus(@Root() userStatus): UserStatusUpdate {
+    userStatus(
+        @Root() userStatus
+    ): UserStatusUpdate {
         return {
             user: userStatus.user,
             status: userStatus.status

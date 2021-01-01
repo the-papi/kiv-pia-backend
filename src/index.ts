@@ -22,7 +22,7 @@ createConnection().then(async connection => {
             resolvers: [
                 UserResolver,
                 ChatMessageResolver,
-                GameResolver
+                GameResolver,
             ],
             pubSub: pubSub,
             container: {

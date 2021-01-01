@@ -3,6 +3,11 @@ import {Game} from "./Game";
 import {User} from "./User";
 import {GameState} from "./GameState";
 
+export enum GameSymbol {
+    Circle,
+    Cross
+}
+
 @Entity()
 export class Player {
 
@@ -17,4 +22,7 @@ export class Player {
 
     @OneToMany(() => GameState, gameState => gameState.player)
     gameStates: Promise<GameState[]>;
+
+    @Column("int")
+    symbol: GameSymbol;
 }

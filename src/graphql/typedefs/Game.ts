@@ -1,8 +1,12 @@
 import {ObjectType, Field} from "type-graphql";
 import {Player} from "./Player";
+import {GameState} from "./GameState";
 
 @ObjectType()
 export class Game {
+    @Field(type => [GameState])
+    gameStates: GameState[];
+
     @Field(type => [Player])
     players: Player[];
 }

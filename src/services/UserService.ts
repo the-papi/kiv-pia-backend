@@ -22,13 +22,41 @@ export class UserService implements types.UserService {
         return userRepository.save(user);
     }
 
+    async getById(id: number): Promise<User> {
+        return getRepository(User).findOne({id: id});
+    }
+
+    async getAllActiveUsers(redis: RedisClient): Promise<User[]> {
+        return new Promise(resolve => {
+            redis.smembers("userStatuses", async (err, userIds) => {
+                let res = [];
+
+                for (const userId of userIds) {
+                    res.push(await this.getById(+userId));
+                }
+
+                resolve(res);
+            });
+        });
+    }
+
     async setStatus(pubSub: apollo.PubSub, redis: RedisClient, user: User, status: types.UserStatus) {
         if (status != types.UserStatus.Offline) {
-            redis.rpush("onlineUsers", user.id.toString());
+            redis.sadd("userStatuses", user.id.toString());
+            redis.set(`userStatuses.user.${user.id}.status`, status.toString());
         } else {
-            redis.lrem("onlineUsers", 1, user.id.toString());
+            redis.srem("userStatuses", user.id.toString());
+            redis.del(`userStatuses.user.${user.id}.status`);
         }
 
         await pubSub.publish("USER_STATUS", {status, user})
+    }
+
+    async getStatus(redis: RedisClient, user: User): Promise<types.UserStatus> {
+        return new Promise(resolve => {
+            redis.get(`userStatuses.user.${user.id}.status`, (err, userStatus) => {
+                resolve(<types.UserStatus><unknown>(+userStatus));
+            });
+        });
     }
 }
