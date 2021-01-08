@@ -13,16 +13,19 @@ import {getUser} from "./auth";
 import {GameResolver} from "./graphql/resolvers/Game";
 import {UserService, UserStatus} from "./services/types";
 import {RedisClient} from "redis";
+import {FriendResolver} from "./graphql/resolvers/Friend";
 
 createConnection().then(async connection => {
     const pubSub = new apollo.PubSub();
     const server = new apollo.ApolloServer({
         tracing: true,
         schema: await buildSchema({
+            dateScalarMode: "isoDate",
             resolvers: [
                 UserResolver,
                 ChatMessageResolver,
                 GameResolver,
+                FriendResolver
             ],
             pubSub: pubSub,
             container: {

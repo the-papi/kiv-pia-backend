@@ -11,7 +11,7 @@ registerEnumType(GameSymbol, {
 });
 
 @ObjectType()
-export class GameState {
+export class SymbolPlacement {
     @Field(type => Int)
     x: number;
 

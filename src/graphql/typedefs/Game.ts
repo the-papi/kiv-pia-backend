@@ -1,14 +1,20 @@
 import {ObjectType, Field} from "type-graphql";
 import {Player} from "./Player";
-import {GameState} from "./GameState";
+import {SymbolPlacement} from "./SymbolPlacement";
 
 @ObjectType()
 export class Game {
-    @Field(type => [GameState])
-    gameStates: GameState[];
+    @Field(type => [SymbolPlacement])
+    gameStates: SymbolPlacement[];
 
     @Field(type => [Player])
     players: Player[];
+
+    @Field(type => Player, {nullable: true})
+    winner: Player;
+
+    @Field()
+    datetime: Date;
 }
 
 @ObjectType()
@@ -27,4 +33,10 @@ export class GameDoesntExist {
 export class PlayerAlreadyInGame {
     @Field()
     message: string;
+}
+
+@ObjectType()
+export class GameRejected {
+    @Field()
+    status: boolean;
 }

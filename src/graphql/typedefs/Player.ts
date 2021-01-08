@@ -1,6 +1,6 @@
 import {ObjectType, Field} from "type-graphql";
 import {User} from "./User";
-import {GameSymbol} from "./GameState";
+import {GameSymbol} from "./SymbolPlacement";
 
 @ObjectType()
 export class Player {

@@ -9,24 +9,53 @@ import {getRepository} from "typeorm";
 import {Game as GameEntity} from "../../entity/Game";
 import {User} from "../../entity/User";
 import {RedisClient} from "redis";
-import {Game, GameAlreadyStarted, GameDoesntExist, PlayerAlreadyInGame} from "../typedefs/Game";
+import {Game, GameAlreadyStarted, GameDoesntExist, GameRejected, PlayerAlreadyInGame} from "../typedefs/Game";
 import {GameResponse, GameResponseStatus} from "../typedefs/GameResponse";
-import {GameState} from "../typedefs/GameState";
+import {SymbolPlacement} from "../typedefs/SymbolPlacement";
+import {GameWin} from "../typedefs/GameWin";
+import {GameRequestCancelled} from "../typedefs/GameRequestCancelled";
+import {GeneralStatus} from "../typedefs/GeneralStatus";
 
 const StartGameResultUnion = createUnionType({
     name: "StartGameResult",
     types: () => [Game, GameAlreadyStarted] as const,
 })
 
-const GameResponseResultUnion = createUnionType({
-    name: "GameResponseResult",
+const GameRequestResultUnion = createUnionType({
+    name: "GameRequestResult",
+    types: () => [GameRequest, GameRequestCancelled] as const,
+});
+
+const CancelGameResultUnion = createUnionType({
+    name: "CancelGameResult",
+    types: () => [GeneralStatus, GameDoesntExist] as const,
+});
+
+const AcceptGameResultUnion = createUnionType({
+    name: "AcceptGameResult",
     types: () => [Game, PlayerAlreadyInGame, GameDoesntExist] as const,
-})
+});
+
+const RejectGameResultUnion = createUnionType({
+    name: "RejectGameResult",
+    types: () => [GameRejected, GameDoesntExist] as const,
+});
+
+const GameStateUnion = createUnionType({
+    name: "GameState",
+    types: () => [SymbolPlacement, GameWin] as const,
+});
 
 @InputType()
 class GameRequestInput {
     @Field(() => Int)
     userId: number;
+}
+
+@InputType()
+class CancelGameRequestInput {
+    @Field(() => String)
+    requestId: string;
 }
 
 @InputType()
@@ -69,6 +98,16 @@ export class GameResolver {
         return this.gameService.getGameStates(game);
     }
 
+    @Query(returns => [Game], {nullable: true})
+    async gamesHistory(@Ctx() context) {
+        return this.gameService.gamesHistory(await context.user);
+    }
+
+    @FieldResolver(returns => Date)
+    async datetime(@Root() game: GameEntity) {
+        return game.updatedAt;
+    }
+
     @Mutation(returns => String, {nullable: true})
     async sendGameRequest(
         @Ctx() context,
@@ -82,24 +121,49 @@ export class GameResolver {
         }
     }
 
-    @Subscription(returns => GameRequest, {
+    @Mutation(returns => CancelGameResultUnion)
+    async cancelGameRequest(
+        @Ctx() context,
+        @PubSub() pubSub: apollo.PubSub,
+        @Arg("input") input: CancelGameRequestInput
+    ): Promise<typeof CancelGameResultUnion> {
+        try {
+            return Object.assign(new GeneralStatus(), {
+                status: await this.gameService.cancelGameRequest(pubSub, this.redis, input.requestId)
+            });
+        } catch (e) {
+            if (e instanceof exceptions.GameDoesntExist) {
+                e = Object.assign(new GameDoesntExist(), e);
+            }
+
+            return e;
+        }
+    }
+
+    @Subscription(returns => GameRequestResultUnion, {
         topics: "GAME_REQUEST",
         filter: async ({payload, context}) =>
             payload && payload.targetUserId == (await context.user).id
     })
-    async gameRequest(@Root() gameRequest): Promise<GameRequest> {
-        return {
-            requestId: gameRequest.requestId,
-            from: await getRepository(User).findOne({id: gameRequest.fromUserId})
-        };
+    async gameRequest(@Root() gameRequest): Promise<typeof GameRequestResultUnion> {
+        if (gameRequest.cancelled) {
+            return Object.assign(new GameRequestCancelled(), {
+                requestId: gameRequest.requestId,
+            });
+        } else {
+            return Object.assign(new GameRequest(), {
+                requestId: gameRequest.requestId,
+                from: await getRepository(User).findOne({id: gameRequest.fromUserId})
+            });
+        }
     }
 
-    @Mutation(returns => GameResponseResultUnion)
+    @Mutation(returns => AcceptGameResultUnion)
     async acceptGameRequestAndStartGame(
         @Ctx() context,
         @PubSub() pubSub: apollo.PubSub,
         @Arg("input") input: GameResponseInput
-    ): Promise<typeof GameResponseResultUnion> {
+    ): Promise<typeof AcceptGameResultUnion> {
         return this.gameService.acceptGameRequest(pubSub, this.redis, input.requestId).then(
             users => {
                 return this.gameService.startGame(pubSub, users).then(
@@ -112,8 +176,6 @@ export class GameResolver {
                 ).catch(e => {
                     if (e instanceof exceptions.PlayerAlreadyInGame) {
                         e = Object.assign(new PlayerAlreadyInGame(), e);
-                    } else {
-                        throw e;
                     }
 
                     return e;
@@ -122,18 +184,37 @@ export class GameResolver {
         ).catch(e => {
             if (e instanceof exceptions.GameDoesntExist) {
                 e = Object.assign(new GameDoesntExist(), e);
-            } else {
-                throw e;
             }
 
             return e;
         });
     }
 
+    @Mutation(returns => RejectGameResultUnion)
+    async rejectGameRequest(
+        @Ctx() context,
+        @PubSub() pubSub: apollo.PubSub,
+        @Arg("input") input: GameResponseInput
+    ): Promise<typeof RejectGameResultUnion> {
+        try {
+            return Object.assign(new GameRejected(), {
+                status: await this.gameService.rejectGameRequest(pubSub, this.redis, input.requestId)
+            });
+        } catch (e) {
+            if (e instanceof exceptions.GameDoesntExist) {
+                e = Object.assign(new GameDoesntExist(), e);
+            }
+
+            return e;
+        }
+    }
+
     @Subscription(returns => GameResponse, {
         topics: "GAME_RESPONSE",
-        filter: async ({payload, context}) =>
-            payload && payload.fromUserId == (await context.user).id
+        filter: async ({payload, context}) => {
+            console.log(payload, payload.fromUserId, (await context.user).id, payload && payload.fromUserId == (await context.user).id)
+            return payload && payload.fromUserId == (await context.user).id
+        }
     })
     async gameResponse(@Root() gameResponse): Promise<GameResponse> {
         return {
@@ -151,11 +232,23 @@ export class GameResolver {
         return this.gameService.placeSymbol(pubSub, this.redis, await context.user, input.x, input.y);
     }
 
-    @Subscription({
+    @Subscription(returns => GameStateUnion, {
         topics: "GAME_STATE",
         filter: async ({payload, context}) => true,
     })
-    gameState(@Root() gameState: GameState): GameState {
-        return gameState;
+    gameState(@Root() gameState: any): typeof GameStateUnion {
+        if (gameState.type === 'SYMBOL_PLACEMENT') {
+            let result = new SymbolPlacement();
+            result.x = gameState.x;
+            result.y = gameState.y;
+            result.symbol = gameState.symbol;
+
+            return result;
+        } else if (gameState.type === 'WIN') {
+            let result = new GameWin();
+            result.player = gameState.player;
+
+            return result;
+        }
     }
 }

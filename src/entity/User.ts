@@ -2,6 +2,7 @@ import {Entity, PrimaryGeneratedColumn, Column, Index, ManyToMany, JoinTable, On
 import * as bcrypt from "bcryptjs";
 import {ChatMessage} from "./ChatMessage";
 import {Player} from "./Player";
+import {FriendRequest} from "./FriendRequest";
 
 @Entity()
 export class User {
@@ -27,6 +28,16 @@ export class User {
 
     @OneToMany(() => Player, player => player.user)
     players: Promise<Player[]>;
+
+    @ManyToMany(() => User, user => user.friends)
+    @JoinTable()
+    friends: Promise<User[]>;
+
+    @OneToMany(() => FriendRequest, friendRequest => friendRequest.requester)
+    myFriendRequests: Promise<FriendRequest[]>;
+
+    @OneToMany(() => FriendRequest, friendRequest => friendRequest.potentialFriend)
+    foreignFriendRequests: Promise<FriendRequest[]>;
 
     set password(password: string) {
         this._password = bcrypt.hashSync(password, 10);

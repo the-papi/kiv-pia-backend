@@ -24,9 +24,17 @@ function generateRequestId(length: number = 32) {
 }
 
 export class GameService implements types.GameService {
+
+    readonly requiredSymbolsForWin = 5;
+
     async getActiveGame(user: User): Promise<Game> {
         let userRepository = getCustomRepository(UserRepository);
         return userRepository.findActiveGame(user);
+    }
+
+    async gamesHistory(user: User): Promise<Game[]> {
+        let userRepository = getCustomRepository(UserRepository);
+        return userRepository.gamesHistory(user);
     }
 
     async startGame(pubSub: apollo.PubSub, users: User[]): Promise<Game> {
@@ -45,7 +53,7 @@ export class GameService implements types.GameService {
         return getConnection().transaction(async transactionalEntityManager => {
             game = await gameRepository.save(game);
 
-            let gameSymbols = [GameSymbol.Circle, GameSymbol.Cross];
+            let gameSymbols = Math.random() > 0.5 ? [GameSymbol.Circle, GameSymbol.Cross] : [GameSymbol.Cross, GameSymbol.Circle];
             let gameSymbolIterator = 0;
             for (let user of users) {
                 let player = new Player();
@@ -78,6 +86,26 @@ export class GameService implements types.GameService {
         return requestId;
     }
 
+    async cancelGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, requestId: string): Promise<boolean> {
+        return new Promise(async (resolve, reject) => {
+            redis.get(`gameRequests.${requestId}.user.target`, async (err, targetUserId) => {
+                if (!targetUserId) {
+                    reject(new exceptions.GameDoesntExist());
+                    return;
+                }
+                redis.del(`gameRequests.${requestId}.user.from`);
+                redis.del(`gameRequests.${requestId}.user.target`);
+                await pubSub.publish("GAME_REQUEST", {
+                    requestId: requestId,
+                    targetUserId: targetUserId,
+                    cancelled: true
+                });
+
+                resolve(true);
+            });
+        });
+    }
+
     async acceptGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, requestId: string): Promise<User[]> {
         return new Promise(async (resolve, reject) => {
             redis.get(`gameRequests.${requestId}.user.from`, async (err, fromUserId) => {
@@ -103,10 +131,31 @@ export class GameService implements types.GameService {
                     });
 
                     resolve(userRepository.findByIds([fromUserId, targetUserId]))
-                })
-            })
-        })
+                });
+            });
+        });
     }
+
+    async rejectGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, requestId: string): Promise<boolean> {
+        return new Promise(async (resolve, reject) => {
+            redis.get(`gameRequests.${requestId}.user.from`, async (err, fromUserId) => {
+                if (!fromUserId) {
+                    reject(new exceptions.GameDoesntExist());
+                    return;
+                }
+                redis.del(`gameRequests.${requestId}.user.from`);
+                redis.del(`gameRequests.${requestId}.user.target`);
+                await pubSub.publish("GAME_RESPONSE", {
+                    fromUserId: fromUserId,
+                    requestId: requestId,
+                    accepted: false
+                });
+
+                resolve(true);
+            });
+        });
+    }
+
 
     async getPlayers(game: Game): Promise<Player[]> {
         return game.players;
@@ -136,7 +185,7 @@ export class GameService implements types.GameService {
         }
 
         let gameState = new GameState();
-        gameState.game = Promise.resolve(activePlayer.game);
+        gameState.game = Promise.resolve(await activePlayer.game);
         gameState.player = Promise.resolve(activePlayer);
         gameState.x = x;
         gameState.y = y;
@@ -144,21 +193,106 @@ export class GameService implements types.GameService {
 
         await pubSub.publish("GAME_STATE", {
             x, y,
+            type: 'SYMBOL_PLACEMENT',
             symbol: activePlayer.symbol,
             gameId: (await activePlayer.game).id
         });
 
+        if (await this.checkWin(await activePlayer.game, x, y, activePlayer.symbol)) {
+            await pubSub.publish("GAME_STATE", {
+                type: 'WIN',
+                gameId: (await activePlayer.game).id,
+                player: activePlayer
+            });
+
+            await this.deactivateGame(await activePlayer.game, activePlayer);
+        }
+
         return true;
     }
 
-    async getGameStates(game: Game): Promise<[{x: number, y: number, symbol: GameSymbol}]> {
+    async deactivateGame(game: Game, winner?: Player) {
+        let gameRepository = getRepository(Game);
+        game.active = false;
+        if (winner) {
+            game.winner = Promise.resolve(winner);
+        }
+        await gameRepository.save(game);
+    }
+
+    async getGameStates(game: Game): Promise<[{ x: number, y: number, symbol: GameSymbol }]> {
         let gameStateRepository = getRepository(GameState);
         // @ts-ignore
         return gameStateRepository.createQueryBuilder("gameState")
             .select(["x", "y"])
             .addSelect("player.symbol", "symbol")
+            .innerJoin("gameState.game", "game")
             .innerJoin("gameState.player", "player")
+            .where("game.id = :id", {id: game.id})
             .orderBy("gameState.id", "ASC")
             .getRawMany();
+    }
+
+    async checkWin(game: Game, lastSymbolX: number, lastSymbolY: number, lastSymbol: GameSymbol): Promise<boolean> {
+        let gameStateRepository = getCustomRepository(GameStateRepository);
+        let radius = this.requiredSymbolsForWin - 1;
+        let fields = await gameStateRepository
+            .getFieldsInSquare(game, lastSymbolX, lastSymbolY, radius);
+
+        let symbolsInARow = 0;
+
+        // Check X axis
+        for (let x = lastSymbolX - radius; x <= lastSymbolX + radius; x++) {
+            if (fields[x][lastSymbolY] == lastSymbol) {
+                symbolsInARow++;
+            } else {
+                symbolsInARow = 0;
+            }
+
+            if (symbolsInARow == this.requiredSymbolsForWin) {
+                return true;
+            }
+        }
+
+        // Check Y axis
+        for (let y = lastSymbolY - radius; y <= lastSymbolY + radius; y++) {
+            if (fields[lastSymbolX][y] == lastSymbol) {
+                symbolsInARow++;
+            } else {
+                symbolsInARow = 0;
+            }
+
+            if (symbolsInARow == this.requiredSymbolsForWin) {
+                return true;
+            }
+        }
+
+        // Check diagonal from top-left to bottom-right
+        for (let x = lastSymbolX - radius, y = lastSymbolY - radius; x <= lastSymbolX + radius && y <= lastSymbolY + radius; x++, y++) {
+            if (fields[x][y] == lastSymbol) {
+                symbolsInARow++;
+            } else {
+                symbolsInARow = 0;
+            }
+
+            if (symbolsInARow == this.requiredSymbolsForWin) {
+                return true;
+            }
+        }
+
+        // Check diagonal from bottom-left to top-right
+        for (let x = lastSymbolX - radius, y = lastSymbolY + radius; x <= lastSymbolX + radius && y >= lastSymbolY - radius; x++, y--) {
+            if (fields[x][y] == lastSymbol) {
+                symbolsInARow++;
+            } else {
+                symbolsInARow = 0;
+            }
+
+            if (symbolsInARow == this.requiredSymbolsForWin) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

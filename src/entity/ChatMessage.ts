@@ -1,4 +1,4 @@
-import {Entity, PrimaryGeneratedColumn, Column, ManyToOne} from "typeorm";
+import {Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn} from "typeorm";
 import {User} from "./User";
 import {Game} from "./Game";
 
@@ -16,4 +16,7 @@ export class ChatMessage {
 
     @Column({type: "text"})
     message: string;
+
+    @CreateDateColumn()
+    createdAt: Date;
 }

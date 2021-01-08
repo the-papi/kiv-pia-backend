@@ -1,4 +1,4 @@
-import {Entity, PrimaryGeneratedColumn, Column, Index, ManyToMany, JoinTable, OneToMany, ManyToOne, OneToOne, JoinColumn} from "typeorm";
+import {Entity, PrimaryGeneratedColumn, Column, Index, ManyToMany, JoinTable, OneToMany, ManyToOne, OneToOne, JoinColumn, UpdateDateColumn} from "typeorm";
 import {Player} from "./Player";
 import {ChatMessage} from "./ChatMessage";
 import {GameState} from "./GameState";
@@ -18,6 +18,12 @@ export class Game {
     @OneToMany(() => GameState, gameState => gameState.game)
     gameStates: Promise<GameState[]>;
 
+    @ManyToOne(() => Player, player => player.game, {nullable: true, onDelete: "CASCADE"})
+    winner: Promise<Player>;
+
     @Column({default: true})
     active: boolean;
+
+    @UpdateDateColumn()
+    updatedAt: Date;
 }
