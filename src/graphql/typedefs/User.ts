@@ -10,7 +10,13 @@ export class User {
 }
 
 @ObjectType()
-export class UsernameAlreadyUsed {
+export class EmailAlreadyUsed {
+    @Field()
+    message: string;
+}
+
+@ObjectType()
+export class PasswordTooWeak {
     @Field()
     message: string;
 }

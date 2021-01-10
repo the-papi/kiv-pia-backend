@@ -1,5 +1,5 @@
 import * as apollo from "apollo-server";
-import {Query, Mutation, Subscription, Resolver, InputType, Field, Arg, Ctx, PubSub, Root, FieldResolver} from "type-graphql";
+import {Query, Mutation, Subscription, Resolver, InputType, Field, Arg, Ctx, PubSub, Root, FieldResolver, Directive} from "type-graphql";
 import {ChatMessage} from "../typedefs/ChatMessage";
 import {ChatMessageService, GameService} from "../../services/types";
 import {container, inject, injectable} from "tsyringe";
@@ -23,6 +23,7 @@ export class ChatMessageResolver {
         this.gameService = gameService;
     }
 
+    @Directive('@auth')
     @Query(returns => [ChatMessage])
     async chatMessagesForActiveGame(@Ctx() context): Promise<ChatMessage[]> {
         let chatMessages = [];
@@ -40,6 +41,7 @@ export class ChatMessageResolver {
         return chatMessages;
     }
 
+    @Directive('@auth')
     @Mutation(returns => Boolean)
     async sendChatMessage(
         @Arg("input") input: ChatMessageInput,
@@ -62,6 +64,7 @@ export class ChatMessageResolver {
         return true;
     }
 
+    @Directive('@auth')
     @Subscription({
         topics: "CHAT_NEW_MESSAGE",
         filter: async function ({payload, context}) {

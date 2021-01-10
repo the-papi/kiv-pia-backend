@@ -1,5 +1,5 @@
-import {Arg, createUnionType, Ctx, Field, InputType, Mutation, Query, registerEnumType, Resolver, Root, Subscription} from "type-graphql";
-import {User, UsernameAlreadyUsed} from "../typedefs/User";
+import {Arg, createUnionType, Ctx, Directive, Field, InputType, Mutation, Query, registerEnumType, Resolver, Root, Subscription} from "type-graphql";
+import {User, EmailAlreadyUsed, PasswordTooWeak} from "../typedefs/User";
 import {authenticate} from "../../auth";
 import {JWT} from "../typedefs/JWT";
 import {forUser as JWTForUser} from "../../auth/jwt";
@@ -11,7 +11,7 @@ import {RedisClient} from "redis";
 
 const RegisterResultUnion = createUnionType({
     name: "RegisterResult",
-    types: () => [User, UsernameAlreadyUsed] as const,
+    types: () => [User, EmailAlreadyUsed, PasswordTooWeak] as const,
 })
 
 @InputType()
@@ -27,9 +27,6 @@ class LoginInput {
 class RegisterInput {
     @Field()
     email: string;
-
-    @Field()
-    username: string;
 
     @Field()
     password: string;
@@ -50,6 +47,7 @@ export class UserResolver {
         this.redis = redis;
     }
 
+    @Directive('@auth')
     @Query(returns => Profile)
     async me(@Ctx() context): Promise<Profile> {
         return await context.user;
@@ -74,7 +72,21 @@ export class UserResolver {
     async register(
         @Arg("input") input: RegisterInput
     ): Promise<typeof RegisterResultUnion> {
-        return this.userService.save(await this.userService.create(input))
+        const data = {
+            ...input,
+            username: input.email
+        }
+
+        let user;
+        try {
+            user = await this.userService.create(data);
+        } catch (e) {
+            let passwordTooWeak = new PasswordTooWeak();
+            passwordTooWeak.message = "Password is too weak.";
+
+            return passwordTooWeak;
+        }
+        return this.userService.save(user)
             .then(value => {
                 let user = new User();
                 user.username = value.username;
@@ -82,13 +94,14 @@ export class UserResolver {
                 return user;
             })
             .catch(e => {
-                let usernameAlreadyUsed = new UsernameAlreadyUsed();
-                usernameAlreadyUsed.message = "This username is already in use.";
+                let emailAlreadyUsed = new EmailAlreadyUsed();
+                emailAlreadyUsed.message = "This email is already in use.";
 
-                return usernameAlreadyUsed;
+                return emailAlreadyUsed;
             });
     }
 
+    @Directive('@auth')
     @Query(returns => [UserStatusUpdate], {nullable: true})
     async activeUsers(@Ctx() context): Promise<UserStatusUpdate[]> {
         return new Promise(async (resolve) => {
@@ -109,6 +122,7 @@ export class UserResolver {
         });
     }
 
+    @Directive('@auth')
     @Subscription({
         topics: "USER_STATUS",
         filter: async ({payload, context}) =>

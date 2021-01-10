@@ -14,24 +14,31 @@ import {GameResolver} from "./graphql/resolvers/Game";
 import {UserService, UserStatus} from "./services/types";
 import {RedisClient} from "redis";
 import {FriendResolver} from "./graphql/resolvers/Friend";
+import {DirectiveLocation, GraphQLDirective} from "graphql";
+import AuthDirective from "./graphql/directives/auth";
 
 createConnection().then(async connection => {
     const pubSub = new apollo.PubSub();
+    let schema = await buildSchema({
+        dateScalarMode: "isoDate",
+        resolvers: [
+            UserResolver,
+            ChatMessageResolver,
+            GameResolver,
+            FriendResolver
+        ],
+        pubSub: pubSub,
+        container: {
+            get: someClass => container.resolve(someClass)
+        }
+    });
+
+    apollo.SchemaDirectiveVisitor.visitSchemaDirectives(schema, {
+        auth: AuthDirective
+    })
     const server = new apollo.ApolloServer({
         tracing: true,
-        schema: await buildSchema({
-            dateScalarMode: "isoDate",
-            resolvers: [
-                UserResolver,
-                ChatMessageResolver,
-                GameResolver,
-                FriendResolver
-            ],
-            pubSub: pubSub,
-            container: {
-                get: someClass => container.resolve(someClass)
-            }
-        }),
+        schema: schema,
         context: ({req, connection}) => {
             if (connection) {
                 return connection.context;

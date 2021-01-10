@@ -1,5 +1,5 @@
 import * as apollo from "apollo-server";
-import {Arg, createUnionType, Ctx, Field, FieldResolver, InputType, Int, Mutation, PubSub, Query, Resolver, Root, Subscription} from "type-graphql";
+import {Arg, createUnionType, Ctx, Directive, Field, FieldResolver, InputType, Int, Mutation, PubSub, Query, Resolver, Root, Subscription} from "type-graphql";
 import * as exceptions from "../../services/exceptions";
 import {GameService} from "../../services/types";
 import {inject, injectable} from "tsyringe";
@@ -88,26 +88,31 @@ export class GameResolver {
         this.redis = redis;
     }
 
+    @Directive('@auth')
     @Query(returns => Game, {nullable: true})
     async activeGame(@Ctx() context) {
         return this.gameService.getActiveGame(await context.user);
     }
 
+    @Directive('@auth')
     @FieldResolver()
     async gameStates(@Root() game: GameEntity) {
         return this.gameService.getGameStates(game);
     }
 
+    @Directive('@auth')
     @Query(returns => [Game], {nullable: true})
     async gamesHistory(@Ctx() context) {
         return this.gameService.gamesHistory(await context.user);
     }
 
+    @Directive('@auth')
     @FieldResolver(returns => Date)
     async datetime(@Root() game: GameEntity) {
         return game.updatedAt;
     }
 
+    @Directive('@auth')
     @Mutation(returns => String, {nullable: true})
     async sendGameRequest(
         @Ctx() context,
@@ -121,6 +126,7 @@ export class GameResolver {
         }
     }
 
+    @Directive('@auth')
     @Mutation(returns => CancelGameResultUnion)
     async cancelGameRequest(
         @Ctx() context,
@@ -140,6 +146,7 @@ export class GameResolver {
         }
     }
 
+    @Directive('@auth')
     @Subscription(returns => GameRequestResultUnion, {
         topics: "GAME_REQUEST",
         filter: async ({payload, context}) =>
@@ -158,6 +165,7 @@ export class GameResolver {
         }
     }
 
+    @Directive('@auth')
     @Mutation(returns => AcceptGameResultUnion)
     async acceptGameRequestAndStartGame(
         @Ctx() context,
@@ -190,6 +198,7 @@ export class GameResolver {
         });
     }
 
+    @Directive('@auth')
     @Mutation(returns => RejectGameResultUnion)
     async rejectGameRequest(
         @Ctx() context,
@@ -209,6 +218,7 @@ export class GameResolver {
         }
     }
 
+    @Directive('@auth')
     @Subscription(returns => GameResponse, {
         topics: "GAME_RESPONSE",
         filter: async ({payload, context}) => {
@@ -223,6 +233,7 @@ export class GameResolver {
         };
     }
 
+    @Directive('@auth')
     @Mutation(returns => Boolean)
     async placeSymbol(
         @Ctx() context,
@@ -232,6 +243,7 @@ export class GameResolver {
         return this.gameService.placeSymbol(pubSub, this.redis, await context.user, input.x, input.y);
     }
 
+    @Directive('@auth')
     @Subscription(returns => GameStateUnion, {
         topics: "GAME_STATE",
         filter: async ({payload, context}) => true,

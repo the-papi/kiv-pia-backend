@@ -9,3 +9,7 @@ export class PlayerAlreadyInGame {
 export class GameAlreadyStarted {
     message: string = "This game has already started.";
 }
+
+export class PasswordTooWeak {
+    message: string = "Given password is too weak";
+}

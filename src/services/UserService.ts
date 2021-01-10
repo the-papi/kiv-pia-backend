@@ -1,15 +1,24 @@
 import * as apollo from "apollo-server";
 import {getRepository} from "typeorm";
 import * as types from "./types"
+import * as exceptions from "./exceptions"
 import {User} from "../entity/User";
 import {RedisClient} from "redis";
 
 export class UserService implements types.UserService {
+    validatePassword(password: string): boolean {
+        return password.length >= 6;
+    }
+
     async create(data: {
         email: string
         username: string
         password: string
     }): Promise<User> {
+        if(!this.validatePassword(data.password)) {
+            throw new exceptions.PasswordTooWeak();
+        }
+
         let userRepository = getRepository(User);
         let user = userRepository.create(data);
         user.password = data.password; // userRepository.create won't set it for us

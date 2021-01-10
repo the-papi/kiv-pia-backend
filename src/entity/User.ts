@@ -11,6 +11,7 @@ export class User {
     id: number;
 
     @Column()
+    @Index({unique: true})
     email: string;
 
     @Column()
