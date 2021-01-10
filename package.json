@@ -23,6 +23,7 @@
       "bcryptjs": "^2.4.3",
       "class-validator": "^0.12.2",
       "dotenv": "^8.2.0",
+      "generate-password": "^1.5.1",
       "graphql": "^15.4.0",
       "i18next": "^19.8.4",
       "jsonwebtoken": "^8.5.1",

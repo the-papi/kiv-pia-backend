@@ -7,6 +7,9 @@ export class User {
 
     @Field()
     username: string;
+
+    @Field()
+    email: string;
 }
 
 @ObjectType()

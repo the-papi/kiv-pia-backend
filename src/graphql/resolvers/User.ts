@@ -1,4 +1,4 @@
-import {Arg, createUnionType, Ctx, Directive, Field, InputType, Mutation, Query, registerEnumType, Resolver, Root, Subscription} from "type-graphql";
+import {Arg, createUnionType, Ctx, Directive, Field, InputType, Int, Mutation, Query, registerEnumType, Resolver, Root, Subscription} from "type-graphql";
 import {User, EmailAlreadyUsed, PasswordTooWeak} from "../typedefs/User";
 import {authenticate} from "../../auth";
 import {JWT} from "../typedefs/JWT";
@@ -32,6 +32,12 @@ class RegisterInput {
     password: string;
 }
 
+@InputType()
+class ResetPasswordInput {
+    @Field(() => Int)
+    userId: number;
+}
+
 @Resolver(User)
 @injectable()
 export class UserResolver {
@@ -51,6 +57,12 @@ export class UserResolver {
     @Query(returns => Profile)
     async me(@Ctx() context): Promise<Profile> {
         return await context.user;
+    }
+
+    @Directive('@auth')
+    @Query(returns => [User])
+    async users(@Ctx() context): Promise<User[]> {
+        return this.userService.getAllUsers();
     }
 
     @Mutation(returns => JWT, {nullable: true})
@@ -99,6 +111,14 @@ export class UserResolver {
 
                 return emailAlreadyUsed;
             });
+    }
+
+    @Directive('@auth')
+    @Mutation(returns => String, {nullable: true})
+    async resetPassword(
+        @Arg("input") input: ResetPasswordInput
+    ): Promise<string> {
+        return this.userService.resetPassword(input.userId);
     }
 
     @Directive('@auth')

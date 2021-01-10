@@ -44,6 +44,8 @@ export interface UserService {
     getAllActiveUsers(redis: RedisClient): Promise<User[]>;
     setStatus(pubSub: apollo.PubSubEngine, redis: RedisClient, user: User, status: UserStatus);
     getStatus(redis: RedisClient, user: User): Promise<UserStatus>;
+    getAllUsers(): Promise<User[]>;
+    resetPassword(userId: number): Promise<string | null>;
 }
 
 export interface FriendService {
