@@ -222,7 +222,6 @@ export class GameResolver {
     @Subscription(returns => GameResponse, {
         topics: "GAME_RESPONSE",
         filter: async ({payload, context}) => {
-            console.log(payload, payload.fromUserId, (await context.user).id, payload && payload.fromUserId == (await context.user).id)
             return payload && payload.fromUserId == (await context.user).id
         }
     })
