@@ -3,13 +3,12 @@ import * as types from "./types"
 import {User} from "../entity/User";
 import {FriendRequest} from "../entity/FriendRequest";
 import {UserRepository} from "../repositories/User";
+import * as apollo from "apollo-server";
 
 export class FriendService implements types.FriendService {
-    async sendFriendRequest(requester: User, foreignUserId: number): Promise<boolean> {
+    async sendFriendRequest(pubSub: apollo.PubSub, requester: User, foreignUserId: number): Promise<boolean> {
         let friendRequestRepository = getRepository(FriendRequest);
         let userRepository = getRepository(User);
-
-        console.log("==================", Promise.resolve(requester.id));
 
         try {
             let friendRequest = new FriendRequest();
@@ -25,8 +24,6 @@ export class FriendService implements types.FriendService {
                 return false;
             }
 
-            console.log("==================", Promise.resolve(potentialFriend.id));
-
             if (await userRepository.createQueryBuilder("user")
                 .innerJoin("user.friends", "friends")
                 .where("user.id = :id", {id: requester.id})
@@ -40,16 +37,25 @@ export class FriendService implements types.FriendService {
             friendRequest.potentialFriend = Promise.resolve(potentialFriend);
 
             await friendRequestRepository.save(friendRequest);
+
+            await pubSub.publish("FRIEND_REQUEST", {
+                requesterId: requester.id,
+                potentialFriendId: potentialFriend.id
+            })
+
             return true;
         } catch (e) {
             return false;
         }
     }
 
-    async acceptFriendRequest(requestId: number): Promise<boolean> {
+    async acceptFriendRequest(pubSub: apollo.PubSub, userId: number): Promise<boolean> {
         let userRepository = getCustomRepository(UserRepository);
         let friendRequestRepository = getRepository(FriendRequest);
-        let request = await friendRequestRepository.findOne({id: requestId});
+        let request = await friendRequestRepository.createQueryBuilder("friendRequest")
+            .innerJoin("friendRequest.requester", "requester")
+            .where("requester.id = :id", {id: userId})
+            .getOne();
 
         if (!request) {
             return false;
@@ -63,7 +69,38 @@ export class FriendService implements types.FriendService {
 
         await friendRequestRepository.remove(request);
 
+        await pubSub.publish("UPDATED_FRIEND_STATUS", {
+            requesterId: userId,
+            potentialFriendId: (await request.potentialFriend).id
+        })
+
         return true;
+    }
+
+    async rejectFriendRequest(pubSub: apollo.PubSub, userId: number): Promise<boolean> {
+        let friendRequestRepository = getRepository(FriendRequest);
+        let request = await friendRequestRepository.createQueryBuilder("friendRequest")
+            .innerJoin("friendRequest.requester", "requester")
+            .where("requester.id = :id", {id: userId})
+            .getOne();
+
+        if (!request) {
+            return false;
+        }
+
+        await friendRequestRepository.remove(request);
+
+        return true;
+    }
+
+    async removeFriend(pubSub: apollo.PubSub, user1Id: number, user2Id: number): Promise<void> {
+        let userRepository = getCustomRepository(UserRepository);
+        await userRepository.removeFriend(userRepository.findOne(user1Id), userRepository.findOne(user2Id));
+
+        await pubSub.publish("UPDATED_FRIEND_STATUS", {
+            requesterId: user1Id,
+            potentialFriendId: user2Id
+        })
     }
 
     async getFriendRequests(forUser: User): Promise<FriendRequest[]> {
@@ -73,5 +110,29 @@ export class FriendService implements types.FriendService {
             .innerJoin("friendRequest.potentialFriend", "potentialFriend")
             .where("potentialFriend.id = :id", {id: forUser.id})
             .getMany();
+    }
+
+    async getFriendStatus(contextUser: User, foreignUser: User): Promise<types.FriendStatus> {
+        let friendRequestRepository = getRepository(FriendRequest);
+        let userRepository = getRepository(User);
+
+        if (await friendRequestRepository.createQueryBuilder("friendRequest")
+            .innerJoin("friendRequest.potentialFriend", "potentialFriend")
+            .innerJoin("friendRequest.requester", "requester")
+            .where("requester.id = :foreignUserId", {foreignUserId: foreignUser.id})
+            .andWhere("potentialFriend.id = :contextUserId", {contextUserId: contextUser.id})
+            .getOne()) {
+            return types.FriendStatus.PendingRequest;
+        }
+
+        if (await userRepository.createQueryBuilder("user")
+            .innerJoin("user.friends", "friends")
+            .where("user.id = :userId", {userId: contextUser.id})
+            .andWhere("friends.id = :friendId", {friendId: foreignUser.id})
+            .getOne()) {
+            return types.FriendStatus.Friend;
+        }
+
+        return types.FriendStatus.NotFriend;
     }
 }

@@ -1,8 +1,11 @@
-import {Arg, createUnionType, Ctx, Directive, Field, FieldResolver, InputType, Int, Mutation, Query, registerEnumType, Resolver, Root, Subscription} from "type-graphql";
-import {inject, injectable} from "tsyringe";
-import {FriendService, UserService} from "../../services/types";
+import {Arg, createUnionType, Ctx, Directive, Field, FieldResolver, InputType, Int, Mutation, PubSub, Query, registerEnumType, Resolver, Root, Subscription} from "type-graphql";
+import {container, inject, injectable} from "tsyringe";
+import {FriendService, GameService, UserService} from "../../services/types";
 import {RedisClient} from "redis";
 import {FriendRequest} from "../typedefs/FriendRequest";
+import * as apollo from "apollo-server";
+import {ChatMessage} from "../typedefs/ChatMessage";
+import {User} from "../typedefs/User";
 
 @InputType()
 class FriendRequestInput {
@@ -13,7 +16,19 @@ class FriendRequestInput {
 @InputType()
 class AcceptFriendRequestInput {
     @Field(() => Int)
-    requestId: number;
+    userId: number;
+}
+
+@InputType()
+class RejectFriendRequestInput {
+    @Field(() => Int)
+    userId: number;
+}
+
+@InputType()
+class RemoveFriendInput {
+    @Field(() => Int)
+    friendId: number;
 }
 
 @Resolver(FriendRequest)
@@ -43,24 +58,79 @@ export class FriendResolver {
     @Directive('@auth')
     @FieldResolver()
     async foreigner(@Root() friendRequest) {
-        return friendRequest.potentialFriend;
+        return friendRequest.foreigner || friendRequest.potentialFriend;
     }
 
     @Directive('@auth')
     @Mutation(returns => Boolean)
     async sendFriendRequest(
         @Arg("input") input: FriendRequestInput,
-        @Ctx() context
+        @Ctx() context,
+        @PubSub() pubSub: apollo.PubSub
     ): Promise<boolean> {
-        return this.friendService.sendFriendRequest(await context.user, input.foreignUserId);
+        return this.friendService.sendFriendRequest(pubSub, await context.user, input.foreignUserId);
     }
 
     @Directive('@auth')
     @Mutation(returns => Boolean)
     async acceptFriendRequest(
         @Arg("input") input: AcceptFriendRequestInput,
-        @Ctx() context
+        @Ctx() context,
+        @PubSub() pubSub: apollo.PubSub
     ): Promise<boolean> {
-        return this.friendService.acceptFriendRequest(input.requestId);
+        return this.friendService.acceptFriendRequest(pubSub, input.userId);
+    }
+
+    @Directive('@auth')
+    @Mutation(returns => Boolean)
+    async rejectFriendRequest(
+        @Arg("input") input: RejectFriendRequestInput,
+        @Ctx() context,
+        @PubSub() pubSub: apollo.PubSub
+    ): Promise<boolean> {
+        return this.friendService.rejectFriendRequest(pubSub, input.userId);
+    }
+
+    @Directive('@auth')
+    @Mutation(returns => Boolean)
+    async removeFriend(
+        @Arg("input") input: RemoveFriendInput,
+        @Ctx() context,
+        @PubSub() pubSub: apollo.PubSub
+    ): Promise<boolean> {
+        try {
+            await this.friendService.removeFriend(pubSub, (await context.user).id, input.friendId);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    @Directive('@auth')
+    @Subscription(() => FriendRequest, {
+        topics: "FRIEND_REQUEST",
+        filter: async function ({payload, context}) {
+            return payload.potentialFriendId == (await context.user).id
+        },
+    })
+    async newFriendRequest(@Root() friendInfo): Promise<FriendRequest> {
+        return {
+            foreigner: await this.userService.getById(friendInfo.requesterId)
+        };
+    }
+
+    @Directive('@auth')
+    @Subscription(() => User, {
+        topics: "UPDATED_FRIEND_STATUS",
+        filter: async function ({payload, context}) {
+            return payload.requesterId == (await context.user).id || payload.potentialFriendId == (await context.user).id
+        },
+    })
+    async updatedFriendStatus(@Root() friendInfo, @Ctx() context): Promise<User> {
+        if (friendInfo.potentialFriendId === (await context.user).id) {
+            return this.userService.getById(friendInfo.requesterId);
+        } else {
+            return this.userService.getById(friendInfo.potentialFriendId);
+        }
     }
 }

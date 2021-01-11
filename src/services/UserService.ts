@@ -74,7 +74,11 @@ export class UserService implements types.UserService {
     async getStatus(redis: RedisClient, user: User): Promise<types.UserStatus> {
         return new Promise(resolve => {
             redis.get(`userStatuses.user.${user.id}.status`, (err, userStatus) => {
-                resolve(<types.UserStatus><unknown>(+userStatus));
+                if (userStatus !== undefined && userStatus !== null) {
+                    resolve(<types.UserStatus><unknown>(+userStatus));
+                } else {
+                    resolve(types.UserStatus.Offline);
+                }
             });
         });
     }

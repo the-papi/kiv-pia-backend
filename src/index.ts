@@ -14,8 +14,8 @@ import {GameResolver} from "./graphql/resolvers/Game";
 import {UserService, UserStatus} from "./services/types";
 import {RedisClient} from "redis";
 import {FriendResolver} from "./graphql/resolvers/Friend";
-import {DirectiveLocation, GraphQLDirective} from "graphql";
 import AuthDirective from "./graphql/directives/auth";
+import AdminDirective from "./graphql/directives/admin";
 
 createConnection().then(async connection => {
     const pubSub = new apollo.PubSub();
@@ -34,7 +34,8 @@ createConnection().then(async connection => {
     });
 
     apollo.SchemaDirectiveVisitor.visitSchemaDirectives(schema, {
-        auth: AuthDirective
+        auth: AuthDirective,
+        admin: AdminDirective
     })
     const server = new apollo.ApolloServer({
         tracing: true,

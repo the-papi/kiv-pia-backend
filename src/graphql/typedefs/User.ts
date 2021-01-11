@@ -1,4 +1,14 @@
-import {ObjectType, Field} from "type-graphql";
+import {ObjectType, Field, registerEnumType} from "type-graphql";
+
+export enum FriendStatus {
+    PendingRequest,
+    Friend,
+    NotFriend
+}
+
+registerEnumType(FriendStatus, {
+    name: "FriendStatus"
+});
 
 @ObjectType()
 export class User {
@@ -13,6 +23,12 @@ export class User {
 
     @Field()
     admin: boolean;
+
+    @Field({defaultValue: false, nullable: true})
+    online?: boolean;
+
+    @Field(type => FriendStatus, {nullable: true})
+    friendStatus?: FriendStatus;
 }
 
 @ObjectType()

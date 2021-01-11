@@ -1,10 +1,10 @@
-import {Arg, createUnionType, Ctx, Directive, Field, InputType, Int, Mutation, Query, registerEnumType, Resolver, Root, Subscription} from "type-graphql";
+import {Arg, createUnionType, Ctx, Directive, Field, FieldResolver, InputType, Int, Mutation, Query, registerEnumType, Resolver, Root, Subscription} from "type-graphql";
 import {User, EmailAlreadyUsed, PasswordTooWeak} from "../typedefs/User";
 import {authenticate} from "../../auth";
 import {JWT} from "../typedefs/JWT";
 import {forUser as JWTForUser} from "../../auth/jwt";
 import {inject, injectable} from "tsyringe";
-import {UserService} from "../../services/types";
+import {FriendService, UserService, UserStatus} from "../../services/types";
 import {UserStatusUpdate} from "../typedefs/UserStatusUpdate";
 import {Profile} from "../typedefs/Profile";
 import {RedisClient} from "redis";
@@ -52,13 +52,16 @@ class ChangeUserRoleInput {
 export class UserResolver {
 
     private readonly userService: UserService;
+    private readonly friendService: FriendService;
     private readonly redis: RedisClient;
 
     constructor(
         @inject("UserService") userService: UserService,
+        @inject("FriendService") friendService: FriendService,
         @inject("redis") redis: RedisClient
     ) {
         this.userService = userService;
+        this.friendService = friendService;
         this.redis = redis;
     }
 
@@ -72,6 +75,18 @@ export class UserResolver {
     @Query(returns => [User])
     async users(@Ctx() context): Promise<User[]> {
         return this.userService.getAllUsers();
+    }
+
+    @Directive('@auth')
+    @FieldResolver()
+    async friendStatus(@Root() user, @Ctx() context) {
+        return this.friendService.getFriendStatus(await context.user, user);
+    }
+
+    @Directive('@auth')
+    @FieldResolver()
+    async online(@Root() user) {
+        return await this.userService.getStatus(this.redis, user) === UserStatus.Online;
     }
 
     @Mutation(returns => JWT, {nullable: true})
@@ -123,6 +138,7 @@ export class UserResolver {
     }
 
     @Directive('@auth')
+    @Directive('@admin')
     @Mutation(returns => String, {nullable: true})
     async resetPassword(
         @Arg("input") input: ResetPasswordInput
@@ -131,6 +147,7 @@ export class UserResolver {
     }
 
     @Directive('@auth')
+    @Directive('@admin')
     @Mutation(returns => String, {nullable: true})
     async changeUserRole(
         @Arg("input") input: ChangeUserRoleInput

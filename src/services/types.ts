@@ -49,8 +49,17 @@ export interface UserService {
     changeUserRole(userId: number, admin: boolean): Promise<boolean>
 }
 
+export enum FriendStatus {
+    PendingRequest,
+    Friend,
+    NotFriend
+}
+
 export interface FriendService {
-    sendFriendRequest(requester: User, foreignUserId: number): Promise<boolean>;
-    acceptFriendRequest(requestId: number): Promise<boolean>;
+    sendFriendRequest(pubSub: apollo.PubSub, requester: User, foreignUserId: number): Promise<boolean>;
+    acceptFriendRequest(pubSub: apollo.PubSub, userId: number): Promise<boolean>;
+    rejectFriendRequest(pubSub: apollo.PubSub, userId: number): Promise<boolean>;
+    removeFriend(pubSub: apollo.PubSub, user1Id: number, user2Id: number): Promise<void>;
     getFriendRequests(forUser: User): Promise<FriendRequest[]>;
+    getFriendStatus(contextUser: User, foreignUser: User): Promise<FriendStatus>
 }
