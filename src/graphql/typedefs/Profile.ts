@@ -10,4 +10,7 @@ export class Profile {
 
     @Field()
     email: string;
+
+    @Field()
+    admin: boolean;
 }

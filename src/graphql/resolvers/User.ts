@@ -38,6 +38,15 @@ class ResetPasswordInput {
     userId: number;
 }
 
+@InputType()
+class ChangeUserRoleInput {
+    @Field(() => Int)
+    userId: number;
+
+    @Field()
+    admin: boolean;
+}
+
 @Resolver(User)
 @injectable()
 export class UserResolver {
@@ -119,6 +128,14 @@ export class UserResolver {
         @Arg("input") input: ResetPasswordInput
     ): Promise<string> {
         return this.userService.resetPassword(input.userId);
+    }
+
+    @Directive('@auth')
+    @Mutation(returns => String, {nullable: true})
+    async changeUserRole(
+        @Arg("input") input: ChangeUserRoleInput
+    ): Promise<boolean> {
+        return this.userService.changeUserRole(input.userId, input.admin);
     }
 
     @Directive('@auth')

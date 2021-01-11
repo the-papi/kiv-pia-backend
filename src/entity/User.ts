@@ -24,6 +24,9 @@ export class User {
     @Column({default: true})
     active: boolean;
 
+    @Column({default: false})
+    admin: boolean;
+
     @OneToMany(() => ChatMessage, chatMessage => chatMessage.from)
     chatMessages: Promise<ChatMessage[]>;
 

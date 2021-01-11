@@ -46,6 +46,7 @@ export interface UserService {
     getStatus(redis: RedisClient, user: User): Promise<UserStatus>;
     getAllUsers(): Promise<User[]>;
     resetPassword(userId: number): Promise<string | null>;
+    changeUserRole(userId: number, admin: boolean): Promise<boolean>
 }
 
 export interface FriendService {

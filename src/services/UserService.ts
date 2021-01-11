@@ -52,7 +52,11 @@ export class UserService implements types.UserService {
 
     async getAllUsers(): Promise<User[]> {
         let userRepository = getRepository(User);
-        return userRepository.find();
+        return userRepository.find({
+            order: {
+                id: "ASC"
+            }
+        });
     }
 
     async setStatus(pubSub: apollo.PubSub, redis: RedisClient, user: User, status: types.UserStatus) {
@@ -91,5 +95,18 @@ export class UserService implements types.UserService {
         }
 
         return null;
+    }
+
+    async changeUserRole(userId: number, admin: boolean): Promise<boolean> {
+        let userRepository = getRepository(User);
+        let user = await userRepository.findOne({id: userId});
+
+        if (user) {
+            user.admin = admin;
+            await userRepository.save(user);
+            return true;
+        }
+
+        return false;
     }
 }

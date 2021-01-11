@@ -10,6 +10,9 @@ export class User {
 
     @Field()
     email: string;
+
+    @Field()
+    admin: boolean;
 }
 
 @ObjectType()
