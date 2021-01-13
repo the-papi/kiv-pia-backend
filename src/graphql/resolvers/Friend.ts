@@ -47,19 +47,19 @@ export class FriendResolver {
     }
 
     @Directive('@auth')
-    @Query(returns => [FriendRequest])
+    @Query(returns => [FriendRequest], {description: "Get all incoming friend requests"})
     async friendRequests(@Ctx() context) {
         return this.friendService.getFriendRequests(await context.user);
     }
 
     @Directive('@auth')
-    @FieldResolver()
+    @FieldResolver({description: "The user to whom the friend request is sent"})
     async foreigner(@Root() friendRequest) {
         return friendRequest.foreigner || friendRequest.potentialFriend;
     }
 
     @Directive('@auth')
-    @Mutation(returns => Boolean)
+    @Mutation(returns => Boolean, {description: "Send friend request to another user"})
     async sendFriendRequest(
         @Arg("input") input: FriendRequestInput,
         @Ctx() context,
@@ -69,7 +69,7 @@ export class FriendResolver {
     }
 
     @Directive('@auth')
-    @Mutation(returns => Boolean)
+    @Mutation(returns => Boolean, {description: "Accept friend request sent by another user"})
     async acceptFriendRequest(
         @Arg("input") input: AcceptFriendRequestInput,
         @Ctx() context,
@@ -79,7 +79,7 @@ export class FriendResolver {
     }
 
     @Directive('@auth')
-    @Mutation(returns => Boolean)
+    @Mutation(returns => Boolean, {description: "Reject friend request sent by another user"})
     async rejectFriendRequest(
         @Arg("input") input: RejectFriendRequestInput,
         @Ctx() context,
@@ -89,7 +89,7 @@ export class FriendResolver {
     }
 
     @Directive('@auth')
-    @Mutation(returns => Boolean)
+    @Mutation(returns => Boolean, {description: "Remove friend from friend list"})
     async removeFriend(
         @Arg("input") input: RemoveFriendInput,
         @Ctx() context,
@@ -109,6 +109,7 @@ export class FriendResolver {
         filter: async function ({payload, context}) {
             return payload.potentialFriendId == (await context.user).id
         },
+        description: "This subscription sends friend requests"
     })
     async newFriendRequest(@Root() friendInfo): Promise<FriendRequest> {
         return {
@@ -122,6 +123,7 @@ export class FriendResolver {
         filter: async function ({payload, context}) {
             return payload.requesterId == (await context.user).id || payload.potentialFriendId == (await context.user).id
         },
+        description: "This subscriptions sends updates about friend status"
     })
     async updatedFriendStatus(@Root() friendInfo, @Ctx() context): Promise<User> {
         if (friendInfo.potentialFriendId === (await context.user).id) {

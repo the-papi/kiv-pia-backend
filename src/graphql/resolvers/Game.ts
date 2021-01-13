@@ -15,6 +15,7 @@ import {SymbolPlacement} from "../typedefs/SymbolPlacement";
 import {GameWin} from "../typedefs/GameWin";
 import {GameRequestCancelled} from "../typedefs/GameRequestCancelled";
 import {GeneralStatus} from "../typedefs/GeneralStatus";
+import {container} from "../../tsyringe.config";
 
 const StartGameResultUnion = createUnionType({
     name: "StartGameResult",
@@ -89,19 +90,19 @@ export class GameResolver {
     }
 
     @Directive('@auth')
-    @Query(returns => Game, {nullable: true})
+    @Query(returns => Game, {nullable: true, description: "Returns active game for currently logged in user"})
     async activeGame(@Ctx() context) {
         return this.gameService.getActiveGame(await context.user);
     }
 
     @Directive('@auth')
-    @FieldResolver()
+    @FieldResolver({description: "Returns list of game states for the given game"})
     async gameStates(@Root() game: GameEntity) {
         return this.gameService.getGameStates(game);
     }
 
     @Directive('@auth')
-    @Query(returns => [Game], {nullable: true})
+    @Query(returns => [Game], {nullable: true, description: "Returns list of all finished games"})
     async gamesHistory(@Ctx() context) {
         return this.gameService.gamesHistory(await context.user);
     }
@@ -113,7 +114,7 @@ export class GameResolver {
     }
 
     @Directive('@auth')
-    @Mutation(returns => String, {nullable: true})
+    @Mutation(returns => String, {nullable: true, description: "Send game request to another player"})
     async sendGameRequest(
         @Ctx() context,
         @PubSub() pubSub: apollo.PubSub,
@@ -127,7 +128,7 @@ export class GameResolver {
     }
 
     @Directive('@auth')
-    @Mutation(returns => CancelGameResultUnion)
+    @Mutation(returns => CancelGameResultUnion, {description: "Cancels sent game request"})
     async cancelGameRequest(
         @Ctx() context,
         @PubSub() pubSub: apollo.PubSub,
@@ -150,7 +151,8 @@ export class GameResolver {
     @Subscription(returns => GameRequestResultUnion, {
         topics: "GAME_REQUEST",
         filter: async ({payload, context}) =>
-            payload && payload.targetUserId == (await context.user).id
+            payload && payload.targetUserId == (await context.user).id,
+        description: "You can receive game requests through this subscription"
     })
     async gameRequest(@Root() gameRequest): Promise<typeof GameRequestResultUnion> {
         if (gameRequest.cancelled) {
@@ -166,7 +168,7 @@ export class GameResolver {
     }
 
     @Directive('@auth')
-    @Mutation(returns => AcceptGameResultUnion)
+    @Mutation(returns => AcceptGameResultUnion, {description: "Accept game request and start the game"})
     async acceptGameRequestAndStartGame(
         @Ctx() context,
         @PubSub() pubSub: apollo.PubSub,
@@ -199,7 +201,7 @@ export class GameResolver {
     }
 
     @Directive('@auth')
-    @Mutation(returns => RejectGameResultUnion)
+    @Mutation(returns => RejectGameResultUnion, {description: "Rejects the game request"})
     async rejectGameRequest(
         @Ctx() context,
         @PubSub() pubSub: apollo.PubSub,
@@ -223,7 +225,8 @@ export class GameResolver {
         topics: "GAME_RESPONSE",
         filter: async ({payload, context}) => {
             return payload && payload.fromUserId == (await context.user).id
-        }
+        },
+        description: "Answer to the game request"
     })
     async gameResponse(@Root() gameResponse): Promise<GameResponse> {
         return {
@@ -233,7 +236,7 @@ export class GameResolver {
     }
 
     @Directive('@auth')
-    @Mutation(returns => Boolean)
+    @Mutation(returns => Boolean, {description: "Place assigned symbol at the given position"})
     async placeSymbol(
         @Ctx() context,
         @PubSub() pubSub: apollo.PubSub,
@@ -245,21 +248,15 @@ export class GameResolver {
     @Directive('@auth')
     @Subscription(returns => GameStateUnion, {
         topics: "GAME_STATE",
-        filter: async ({payload, context}) => true,
+        // We need to use container.resolve, because we don't have access to `this.gameService` here
+        filter: async ({payload, context}) => payload.gameId == (await (<GameService>container.resolve("GameService")).getActiveGame(await context.user)).id,
+        description: "Sends new game states"
     })
     gameState(@Root() gameState: any): typeof GameStateUnion {
         if (gameState.type === 'SYMBOL_PLACEMENT') {
-            let result = new SymbolPlacement();
-            result.x = gameState.x;
-            result.y = gameState.y;
-            result.symbol = gameState.symbol;
-
-            return result;
+            return Object.assign(new SymbolPlacement(), gameState);
         } else if (gameState.type === 'WIN') {
-            let result = new GameWin();
-            result.player = gameState.player;
-
-            return result;
+            return Object.assign(new GameWin(), gameState);
         }
     }
 }

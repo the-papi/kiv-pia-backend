@@ -1,5 +1,4 @@
 import {ObjectType, Field, registerEnumType} from "type-graphql";
-import {User} from "./User";
 
 export enum GameResponseStatus {
     Accepted,
@@ -10,7 +9,7 @@ registerEnumType(GameResponseStatus, {
     name: "GameResponseStatus"
 });
 
-@ObjectType()
+@ObjectType({description: "This object is sent when user accepts or rejects game request"})
 export class GameResponse {
     @Field(type => String)
     requestId: string;

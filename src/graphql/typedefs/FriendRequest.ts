@@ -3,6 +3,6 @@ import {User} from "./User";
 
 @ObjectType()
 export class FriendRequest {
-    @Field()
+    @Field({description: "Receiver of the friend request"})
     foreigner: User;
 }

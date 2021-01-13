@@ -1,5 +1,4 @@
 import {ObjectType, Field, registerEnumType, Int} from "type-graphql";
-import {User} from "./User";
 
 export enum GameSymbol {
     Circle,

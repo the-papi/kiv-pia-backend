@@ -231,7 +231,7 @@ export class GameService implements types.GameService {
                 player: activePlayer
             });
 
-            await this.deactivateGame(await activePlayer.game, activePlayer);
+            setTimeout(async () => await this.deactivateGame(await activePlayer.game, activePlayer), 500);
         }
 
         return true;

@@ -24,7 +24,7 @@ export class ChatMessageResolver {
     }
 
     @Directive('@auth')
-    @Query(returns => [ChatMessage])
+    @Query(returns => [ChatMessage], {description: "Returns chat messages for the active game"})
     async chatMessagesForActiveGame(@Ctx() context): Promise<ChatMessage[]> {
         let chatMessages = [];
         for (const chatMessage of
@@ -42,7 +42,7 @@ export class ChatMessageResolver {
     }
 
     @Directive('@auth')
-    @Mutation(returns => Boolean)
+    @Mutation(returns => Boolean, {description: "Sends chat message to the game chat"})
     async sendChatMessage(
         @Arg("input") input: ChatMessageInput,
         @Ctx() context,
@@ -71,6 +71,7 @@ export class ChatMessageResolver {
             const gameService: GameService = container.resolve("GameService");
             return (await gameService.getActiveGame(await context.user)).id == payload.gameId;
         },
+        description: "This subscription sends new chat messages in the active game"
     })
     newChatMessage(@Root() chatMessage: ChatMessage): ChatMessage {
         return chatMessage;
