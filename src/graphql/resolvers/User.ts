@@ -62,16 +62,13 @@ export class UserResolver {
 
     private readonly userService: UserService;
     private readonly friendService: FriendService;
-    private readonly redis: RedisClient;
 
     constructor(
         @inject("UserService") userService: UserService,
         @inject("FriendService") friendService: FriendService,
-        @inject("redis") redis: RedisClient
     ) {
         this.userService = userService;
         this.friendService = friendService;
-        this.redis = redis;
     }
 
     @Directive('@auth')
@@ -95,7 +92,7 @@ export class UserResolver {
     @Directive('@auth')
     @FieldResolver()
     async online(@Root() user) {
-        return await this.userService.getStatus(this.redis, user) === UserStatus.Online;
+        return await this.userService.getStatus(user) === UserStatus.Online;
     }
 
     @Mutation(returns => JWT, {nullable: true})
@@ -183,14 +180,14 @@ export class UserResolver {
         return new Promise(async (resolve) => {
             let userStatuses = [];
 
-            for (let user of await this.userService.getAllActiveUsers(this.redis)) {
+            for (let user of await this.userService.getAllActiveUsers()) {
                 if (user.id == (await context.user).id) {
                     continue;
                 }
 
                 let userStatus = new UserStatusUpdate();
                 userStatus.user = user;
-                userStatus.status = await this.userService.getStatus(this.redis, user);
+                userStatus.status = await this.userService.getStatus(user);
                 userStatuses.push(userStatus);
             }
 

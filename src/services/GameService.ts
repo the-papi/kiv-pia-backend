@@ -11,6 +11,7 @@ import * as apollo from "apollo-server";
 import {RedisClient} from "redis";
 import {GameState} from "../entity/GameState";
 import {GameStateRepository} from "../repositories/Game";
+import {inject} from "tsyringe";
 
 function generateRequestId(length: number = 32) {
     let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -26,6 +27,13 @@ function generateRequestId(length: number = 32) {
 export class GameService implements types.GameService {
 
     readonly requiredSymbolsForWin = 5;
+    private readonly redis: RedisClient;
+
+    constructor(
+        @inject("redis") redis: RedisClient
+    ) {
+        this.redis = redis;
+    }
 
     async getActiveGame(user: User): Promise<Game> {
         let userRepository = getCustomRepository(UserRepository);
@@ -68,7 +76,7 @@ export class GameService implements types.GameService {
         }).then(value => game);
     }
 
-    async sendGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, fromUser: User, targetUserId: number, boardSize: number): Promise<string | null> {
+    async sendGameRequest(pubSub: apollo.PubSubEngine, fromUser: User, targetUserId: number, boardSize: number): Promise<string | null> {
         if (!fromUser || fromUser.id == targetUserId) {
             return null;
         }
@@ -81,22 +89,22 @@ export class GameService implements types.GameService {
             targetUserId: targetUserId
         });
 
-        redis.set(`gameRequests.${requestId}.user.from`, fromUser.id.toString(), "EX", 5 * 60)
-        redis.set(`gameRequests.${requestId}.user.target`, targetUserId.toString(), "EX", 5 * 60)
-        redis.set(`gameRequests.${requestId}.user.boardSize`, boardSize.toString(), "EX", 5 * 60)
+        this.redis.set(`gameRequests.${requestId}.user.from`, fromUser.id.toString(), "EX", 5 * 60)
+        this.redis.set(`gameRequests.${requestId}.user.target`, targetUserId.toString(), "EX", 5 * 60)
+        this.redis.set(`gameRequests.${requestId}.user.boardSize`, boardSize.toString(), "EX", 5 * 60)
 
         return requestId;
     }
 
-    async cancelGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, requestId: string): Promise<boolean> {
+    async cancelGameRequest(pubSub: apollo.PubSubEngine, requestId: string): Promise<boolean> {
         return new Promise(async (resolve, reject) => {
-            redis.get(`gameRequests.${requestId}.user.target`, async (err, targetUserId) => {
+            this.redis.get(`gameRequests.${requestId}.user.target`, async (err, targetUserId) => {
                 if (!targetUserId) {
                     reject(new exceptions.GameDoesntExist());
                     return;
                 }
-                redis.del(`gameRequests.${requestId}.user.from`);
-                redis.del(`gameRequests.${requestId}.user.target`);
+                this.redis.del(`gameRequests.${requestId}.user.from`);
+                this.redis.del(`gameRequests.${requestId}.user.target`);
                 await pubSub.publish("GAME_REQUEST", {
                     requestId: requestId,
                     targetUserId: targetUserId,
@@ -108,21 +116,21 @@ export class GameService implements types.GameService {
         });
     }
 
-    async acceptGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, requestId: string): Promise<{ users: User[], boardSize: number }> {
+    async acceptGameRequest(pubSub: apollo.PubSubEngine, requestId: string): Promise<{ users: User[], boardSize: number }> {
         return new Promise(async (resolve, reject) => {
-            redis.get(`gameRequests.${requestId}.user.from`, async (err, fromUserId) => {
+            this.redis.get(`gameRequests.${requestId}.user.from`, async (err, fromUserId) => {
                 if (!fromUserId) {
                     reject(new exceptions.GameDoesntExist());
                     return;
                 }
-                redis.del(`gameRequests.${requestId}.user.from`);
+                this.redis.del(`gameRequests.${requestId}.user.from`);
 
-                redis.get(`gameRequests.${requestId}.user.target`, async (err, targetUserId) => {
+                this.redis.get(`gameRequests.${requestId}.user.target`, async (err, targetUserId) => {
                     if (!targetUserId) {
                         reject(new exceptions.GameDoesntExist());
                         return;
                     }
-                    redis.del(`gameRequests.${requestId}.user.target`);
+                    this.redis.del(`gameRequests.${requestId}.user.target`);
 
                     let userRepository = getCustomRepository(UserRepository);
 
@@ -132,7 +140,7 @@ export class GameService implements types.GameService {
                         accepted: true
                     });
 
-                    redis.get(`gameRequests.${requestId}.user.boardSize`, async (err, boardSize) => {
+                    this.redis.get(`gameRequests.${requestId}.user.boardSize`, async (err, boardSize) => {
                         if (err || !boardSize) {
                             throw 'Unknown board size';
                         }
@@ -144,15 +152,15 @@ export class GameService implements types.GameService {
         });
     }
 
-    async rejectGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, requestId: string): Promise<boolean> {
+    async rejectGameRequest(pubSub: apollo.PubSubEngine, requestId: string): Promise<boolean> {
         return new Promise(async (resolve, reject) => {
-            redis.get(`gameRequests.${requestId}.user.from`, async (err, fromUserId) => {
+            this.redis.get(`gameRequests.${requestId}.user.from`, async (err, fromUserId) => {
                 if (!fromUserId) {
                     reject(new exceptions.GameDoesntExist());
                     return;
                 }
-                redis.del(`gameRequests.${requestId}.user.from`);
-                redis.del(`gameRequests.${requestId}.user.target`);
+                this.redis.del(`gameRequests.${requestId}.user.from`);
+                this.redis.del(`gameRequests.${requestId}.user.target`);
                 await pubSub.publish("GAME_RESPONSE", {
                     fromUserId: fromUserId,
                     requestId: requestId,
@@ -183,7 +191,7 @@ export class GameService implements types.GameService {
         return gameStateRepository.isFieldOccupied(game, x, y);
     }
 
-    async placeSymbol(pubSub: apollo.PubSubEngine, redis: RedisClient, user: User, x: number, y: number): Promise<boolean> {
+    async placeSymbol(pubSub: apollo.PubSubEngine, user: User, x: number, y: number): Promise<boolean> {
         let playerRepository = getCustomRepository(PlayerRepository);
         let gameStateRepository = getRepository(GameState);
         let activePlayer = await playerRepository.findActivePlayer(user);

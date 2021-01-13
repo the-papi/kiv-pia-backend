@@ -19,12 +19,12 @@ export interface GameService {
     getActiveGame(user: User): Promise<Game>;
     gamesHistory(user: User): Promise<Game[]>;
     startGame(pubSub: apollo.PubSub, users: User[], boardSize: number): Promise<Game>;
-    sendGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, fromUser: User, targetUserId: number, boardSize: number): Promise<string | null>;
-    cancelGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, requestId: string): Promise<boolean>;
-    acceptGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, requestId: string): Promise<{ users: User[], boardSize: number }>;
-    rejectGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, requestId: string): Promise<boolean>;
+    sendGameRequest(pubSub: apollo.PubSubEngine, fromUser: User, targetUserId: number, boardSize: number): Promise<string | null>;
+    cancelGameRequest(pubSub: apollo.PubSubEngine, requestId: string): Promise<boolean>;
+    acceptGameRequest(pubSub: apollo.PubSubEngine, requestId: string): Promise<{ users: User[], boardSize: number }>;
+    rejectGameRequest(pubSub: apollo.PubSubEngine, requestId: string): Promise<boolean>;
     getPlayers(game: Game): Promise<Player[]>;
-    placeSymbol(pubSub: apollo.PubSubEngine, redis: RedisClient, user: User, x: number, y: number): Promise<boolean>;
+    placeSymbol(pubSub: apollo.PubSubEngine, user: User, x: number, y: number): Promise<boolean>;
     getGameStates(game: Game): Promise<[{x: number, y: number, symbol: GameSymbol}]>;
 }
 
@@ -41,9 +41,9 @@ export interface UserService {
     }): Promise<User>;
     save(user: User);
     getById(id: number): Promise<User>;
-    getAllActiveUsers(redis: RedisClient): Promise<User[]>;
-    setStatus(pubSub: apollo.PubSubEngine, redis: RedisClient, user: User, status: UserStatus);
-    getStatus(redis: RedisClient, user: User): Promise<UserStatus>;
+    getAllActiveUsers(): Promise<User[]>;
+    setStatus(pubSub: apollo.PubSubEngine, user: User, status: UserStatus);
+    getStatus(user: User): Promise<UserStatus>;
     getAllUsers(): Promise<User[]>;
     resetPassword(userId: number): Promise<string | null>;
     changeUserRole(userId: number, admin: boolean): Promise<boolean>;

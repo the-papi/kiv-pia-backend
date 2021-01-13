@@ -5,8 +5,18 @@ import * as exceptions from "./exceptions"
 import {User} from "../entity/User";
 import {RedisClient} from "redis";
 import {generate as generatePassword} from "generate-password";
+import {inject, injectable} from "tsyringe";
 
+@injectable()
 export class UserService implements types.UserService {
+    private readonly redis: RedisClient;
+
+    constructor(
+        @inject("redis") redis: RedisClient
+    ) {
+        this.redis = redis;
+    }
+
     validatePassword(password: string): boolean {
         return password.length >= 6;
     }
@@ -36,9 +46,9 @@ export class UserService implements types.UserService {
         return getRepository(User).findOne({id: id});
     }
 
-    async getAllActiveUsers(redis: RedisClient): Promise<User[]> {
+    async getAllActiveUsers(): Promise<User[]> {
         return new Promise(resolve => {
-            redis.smembers("userStatuses", async (err, userIds) => {
+            this.redis.smembers("userStatuses", async (err, userIds) => {
                 let res = [];
 
                 for (const userId of userIds) {
@@ -59,21 +69,21 @@ export class UserService implements types.UserService {
         });
     }
 
-    async setStatus(pubSub: apollo.PubSub, redis: RedisClient, user: User, status: types.UserStatus) {
+    async setStatus(pubSub: apollo.PubSub, user: User, status: types.UserStatus) {
         if (status != types.UserStatus.Offline) {
-            redis.sadd("userStatuses", user.id.toString());
-            redis.set(`userStatuses.user.${user.id}.status`, status.toString());
+            this.redis.sadd("userStatuses", user.id.toString());
+            this.redis.set(`userStatuses.user.${user.id}.status`, status.toString());
         } else {
-            redis.srem("userStatuses", user.id.toString());
-            redis.del(`userStatuses.user.${user.id}.status`);
+            this.redis.srem("userStatuses", user.id.toString());
+            this.redis.del(`userStatuses.user.${user.id}.status`);
         }
 
         await pubSub.publish("USER_STATUS", {status, user})
     }
 
-    async getStatus(redis: RedisClient, user: User): Promise<types.UserStatus> {
+    async getStatus(user: User): Promise<types.UserStatus> {
         return new Promise(resolve => {
-            redis.get(`userStatuses.user.${user.id}.status`, (err, userStatus) => {
+            this.redis.get(`userStatuses.user.${user.id}.status`, (err, userStatus) => {
                 if (userStatus !== undefined && userStatus !== null) {
                     resolve(<types.UserStatus><unknown>(+userStatus));
                 } else {

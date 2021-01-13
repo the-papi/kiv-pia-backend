@@ -37,16 +37,13 @@ export class FriendResolver {
 
     private readonly userService: UserService;
     private readonly friendService: FriendService;
-    private readonly redis: RedisClient;
 
     constructor(
         @inject("UserService") userService: UserService,
         @inject("FriendService") friendService: FriendService,
-        @inject("redis") redis: RedisClient
     ) {
         this.userService = userService;
         this.friendService = friendService;
-        this.redis = redis;
     }
 
     @Directive('@auth')

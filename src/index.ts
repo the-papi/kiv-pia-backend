@@ -53,7 +53,7 @@ createConnection().then(async connection => {
                 if (await user) {
                     let userService: UserService = container.resolve("UserService");
                     let redis: RedisClient = container.resolve("redis");
-                    userService.setStatus(pubSub, redis, await user, UserStatus.Online);
+                    userService.setStatus(pubSub, await user, UserStatus.Online);
                 }
 
                 return {user}
@@ -64,7 +64,7 @@ createConnection().then(async connection => {
                 let user = await (await context.initPromise).user;
 
                 if (user) {
-                    userService.setStatus(pubSub, redis, user, UserStatus.Offline);
+                    userService.setStatus(pubSub, user, UserStatus.Offline);
                 }
             }
         },

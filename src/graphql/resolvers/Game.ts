@@ -81,14 +81,11 @@ class PlaceSymbolInput {
 export class GameResolver {
 
     private readonly gameService: GameService;
-    private readonly redis: RedisClient;
 
     constructor(
         @inject("GameService") gameService: GameService,
-        @inject("redis") redis: RedisClient
     ) {
         this.gameService = gameService;
-        this.redis = redis;
     }
 
     @Directive('@auth')
@@ -123,7 +120,7 @@ export class GameResolver {
         @Arg("input") input: GameRequestInput
     ): Promise<string | null> {
         try {
-            return await this.gameService.sendGameRequest(pubSub, this.redis, await context.user, input.userId, input.boardSize);
+            return await this.gameService.sendGameRequest(pubSub, await context.user, input.userId, input.boardSize);
         } catch (e) {
             return null;
         }
@@ -138,7 +135,7 @@ export class GameResolver {
     ): Promise<typeof CancelGameResultUnion> {
         try {
             return Object.assign(new GeneralStatus(), {
-                status: await this.gameService.cancelGameRequest(pubSub, this.redis, input.requestId)
+                status: await this.gameService.cancelGameRequest(pubSub, input.requestId)
             });
         } catch (e) {
             if (e instanceof exceptions.GameDoesntExist) {
@@ -175,7 +172,7 @@ export class GameResolver {
         @PubSub() pubSub: apollo.PubSub,
         @Arg("input") input: GameResponseInput
     ): Promise<typeof AcceptGameResultUnion> {
-        return this.gameService.acceptGameRequest(pubSub, this.redis, input.requestId).then(
+        return this.gameService.acceptGameRequest(pubSub, input.requestId).then(
             data => {
                 return this.gameService.startGame(pubSub, data.users, data.boardSize).then(
                     async v => {
@@ -210,7 +207,7 @@ export class GameResolver {
     ): Promise<typeof RejectGameResultUnion> {
         try {
             return Object.assign(new GameRejected(), {
-                status: await this.gameService.rejectGameRequest(pubSub, this.redis, input.requestId)
+                status: await this.gameService.rejectGameRequest(pubSub, input.requestId)
             });
         } catch (e) {
             if (e instanceof exceptions.GameDoesntExist) {
@@ -242,7 +239,7 @@ export class GameResolver {
         @PubSub() pubSub: apollo.PubSub,
         @Arg("input") input: PlaceSymbolInput
     ): Promise<boolean> {
-        return this.gameService.placeSymbol(pubSub, this.redis, await context.user, input.x, input.y);
+        return this.gameService.placeSymbol(pubSub, await context.user, input.x, input.y);
     }
 
     @Directive('@auth')
