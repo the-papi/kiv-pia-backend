@@ -159,17 +159,27 @@ export class UserResolver {
     @Directive('@admin')
     @Mutation(returns => String, {nullable: true, description: "Resets password to the given user"})
     async resetPassword(
+        @Ctx() context,
         @Arg("input") input: ResetPasswordInput
     ): Promise<string> {
+        if ((await context.user).id == input.userId) {
+            return "";
+        }
+
         return this.userService.resetPassword(input.userId);
     }
 
     @Directive('@auth')
     @Directive('@admin')
-    @Mutation(returns => String, {nullable: true, description: "Changes user role to admin or casual user"})
+    @Mutation(returns => Boolean, {nullable: true, description: "Changes user role to admin or casual user"})
     async changeUserRole(
+        @Ctx() context,
         @Arg("input") input: ChangeUserRoleInput
     ): Promise<boolean> {
+        if ((await context.user).id == input.userId) {
+            return false;
+        }
+
         return this.userService.changeUserRole(input.userId, input.admin);
     }
 

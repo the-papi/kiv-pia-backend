@@ -21,6 +21,11 @@ const GameRequestResultUnion = createUnionType({
     types: () => [GameRequest, GameRequestCancelled] as const,
 });
 
+const SendGameRequestResultUnion = createUnionType({
+    name: "SendGameRequestResult",
+    types: () => [PlayerAlreadyInGame, GeneralStatus] as const,
+});
+
 const CancelGameResultUnion = createUnionType({
     name: "CancelGameResult",
     types: () => [GeneralStatus, GameDoesntExist] as const,
@@ -108,16 +113,34 @@ export class GameResolver {
     }
 
     @Directive('@auth')
-    @Mutation(returns => String, {nullable: true, description: "Send game request to another player"})
+    @Mutation(returns => SendGameRequestResultUnion, {nullable: true, description: "Send game request to another player"})
     async sendGameRequest(
         @Ctx() context,
         @PubSub() pubSub: apollo.PubSub,
         @Arg("input") input: GameRequestInput
-    ): Promise<string | null> {
+    ): Promise<typeof SendGameRequestResultUnion> {
+        if (await this.gameService.getActiveGame(await context.user)) {
+            let err = new PlayerAlreadyInGame();
+            err.message = "You can't send new game request because you are already in the game";
+            return err;
+        }
+
         try {
-            return await this.gameService.sendGameRequest(pubSub, await context.user, input.userId, input.boardSize);
+            const requestId = await this.gameService.sendGameRequest(pubSub, await context.user, input.userId, input.boardSize);
+            if (requestId) {
+                let status = new GeneralStatus();
+                status.status = true;
+                status.message = requestId;
+                return status;
+            } else {
+                let err = new PlayerAlreadyInGame();
+                err.message = "Requested player is already in the game";
+                return err;
+            }
         } catch (e) {
-            return null;
+            let status = new GeneralStatus();
+            status.status = false;
+            return status;
         }
     }
 

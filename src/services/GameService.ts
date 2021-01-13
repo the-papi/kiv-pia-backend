@@ -93,6 +93,12 @@ export class GameService implements types.GameService {
             return null;
         }
 
+        let userRepository = getCustomRepository(UserRepository);
+        let targetUser = await userRepository.findOne({id: targetUserId})
+        if (targetUser && await this.getActiveGame(targetUser)) {
+            return null;
+        }
+
         let requestId = generateRequestId()
 
         await pubSub.publish("GAME_REQUEST", {
