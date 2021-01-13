@@ -8,19 +8,13 @@ import {GameRequest} from "../typedefs/GameRequest";
 import {getRepository} from "typeorm";
 import {Game as GameEntity} from "../../entity/Game";
 import {User} from "../../entity/User";
-import {RedisClient} from "redis";
-import {BoardSize, Game, GameAlreadyStarted, GameDoesntExist, GameRejected, PlayerAlreadyInGame} from "../typedefs/Game";
+import {BoardSize, Game, GameDoesntExist, GameRejected, PlayerAlreadyInGame} from "../typedefs/Game";
 import {GameResponse, GameResponseStatus} from "../typedefs/GameResponse";
 import {SymbolPlacement} from "../typedefs/SymbolPlacement";
 import {GameWin} from "../typedefs/GameWin";
 import {GameRequestCancelled} from "../typedefs/GameRequestCancelled";
 import {GeneralStatus} from "../typedefs/GeneralStatus";
 import {container} from "../../tsyringe.config";
-
-const StartGameResultUnion = createUnionType({
-    name: "StartGameResult",
-    types: () => [Game, GameAlreadyStarted] as const,
-})
 
 const GameRequestResultUnion = createUnionType({
     name: "GameRequestResult",
@@ -174,10 +168,13 @@ export class GameResolver {
         @PubSub() pubSub: apollo.PubSub,
         @Arg("input") input: GameResponseInput
     ): Promise<typeof AcceptGameResultUnion> {
+        // Accept game request
         return this.gameService.acceptGameRequest(pubSub, input.requestId).then(
             data => {
+                // Start the game
                 return this.gameService.startGame(pubSub, data.users, data.boardSize).then(
                     async v => {
+                        // Add players to the game
                         let game = new Game();
                         game.players = <Player[]><unknown>(await this.gameService.getPlayers(v));
 

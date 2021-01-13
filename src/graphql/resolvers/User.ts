@@ -179,6 +179,7 @@ export class UserResolver {
         return new Promise(async (resolve) => {
             let userStatuses = [];
 
+            // Load status of all active users
             for (let user of await this.userService.getAllActiveUsers()) {
                 if (user.id == (await context.user).id) {
                     continue;

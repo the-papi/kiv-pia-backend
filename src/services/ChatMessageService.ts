@@ -7,6 +7,9 @@ import {UserRepository} from "../repositories/User";
 import {Game} from "../entity/Game";
 
 export class ChatMessageService implements types.ChatMessageService {
+    /**
+     * @inheritDoc
+     */
     async create(data: {
         from: User,
         message: string,
@@ -21,6 +24,9 @@ export class ChatMessageService implements types.ChatMessageService {
         return chatMessage;
     }
 
+    /**
+     * @inheritDoc
+     */
     async send(pubSub: apollo.PubSub, chatMessage: ChatMessage): Promise<ChatMessage> {
         let chatMessageRepository = getRepository(ChatMessage);
         chatMessage = await chatMessageRepository.save(chatMessage);
@@ -36,6 +42,9 @@ export class ChatMessageService implements types.ChatMessageService {
         return chatMessage;
     }
 
+    /**
+     * @inheritDoc
+     */
     async getChatMessagesForGame(game: Game): Promise<ChatMessage[]> {
         let chatMessageRepository = getRepository(ChatMessage);
         return chatMessageRepository.createQueryBuilder("chatMessage")

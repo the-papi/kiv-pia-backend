@@ -19,3 +19,4 @@ services:
 
     redis:
         image: redis:6-alpine
+        command: [sh, -c, "rm -f /data/dump.rdb && redis-server --save ''"]

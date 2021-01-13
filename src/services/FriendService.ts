@@ -6,6 +6,10 @@ import {UserRepository} from "../repositories/User";
 import * as apollo from "apollo-server";
 
 export class FriendService implements types.FriendService {
+
+    /**
+     * @inheritDoc
+     */
     async sendFriendRequest(pubSub: apollo.PubSub, requester: User, foreignUserId: number): Promise<boolean> {
         let friendRequestRepository = getRepository(FriendRequest);
         let userRepository = getRepository(User);
@@ -49,6 +53,9 @@ export class FriendService implements types.FriendService {
         }
     }
 
+    /**
+     * @inheritDoc
+     */
     async acceptFriendRequest(pubSub: apollo.PubSub, userId: number): Promise<boolean> {
         let userRepository = getCustomRepository(UserRepository);
         let friendRequestRepository = getRepository(FriendRequest);
@@ -77,6 +84,9 @@ export class FriendService implements types.FriendService {
         return true;
     }
 
+    /**
+     * @inheritDoc
+     */
     async rejectFriendRequest(pubSub: apollo.PubSub, userId: number): Promise<boolean> {
         let friendRequestRepository = getRepository(FriendRequest);
         let request = await friendRequestRepository.createQueryBuilder("friendRequest")
@@ -93,6 +103,9 @@ export class FriendService implements types.FriendService {
         return true;
     }
 
+    /**
+     * @inheritDoc
+     */
     async removeFriend(pubSub: apollo.PubSub, user1Id: number, user2Id: number): Promise<void> {
         let userRepository = getCustomRepository(UserRepository);
         await userRepository.removeFriend(userRepository.findOne(user1Id), userRepository.findOne(user2Id));
@@ -103,6 +116,9 @@ export class FriendService implements types.FriendService {
         })
     }
 
+    /**
+     * @inheritDoc
+     */
     async getFriendRequests(forUser: User): Promise<FriendRequest[]> {
         let friendRequestRepository = getRepository(FriendRequest);
 
@@ -112,6 +128,9 @@ export class FriendService implements types.FriendService {
             .getMany();
     }
 
+    /**
+     * @inheritDoc
+     */
     async getFriendStatus(contextUser: User, foreignUser: User): Promise<types.FriendStatus> {
         let friendRequestRepository = getRepository(FriendRequest);
         let userRepository = getRepository(User);

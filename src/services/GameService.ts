@@ -35,16 +35,25 @@ export class GameService implements types.GameService {
         this.redis = redis;
     }
 
+    /**
+     * @inheritDoc
+     */
     async getActiveGame(user: User): Promise<Game> {
         let userRepository = getCustomRepository(UserRepository);
         return userRepository.findActiveGame(user);
     }
 
+    /**
+     * @inheritDoc
+     */
     async gamesHistory(user: User): Promise<Game[]> {
         let userRepository = getCustomRepository(UserRepository);
         return userRepository.gamesHistory(user);
     }
 
+    /**
+     * @inheritDoc
+     */
     async startGame(pubSub: apollo.PubSub, users: User[], boardSize: number): Promise<Game> {
         let userRepository = getCustomRepository(UserRepository);
 
@@ -76,6 +85,9 @@ export class GameService implements types.GameService {
         }).then(value => game);
     }
 
+    /**
+     * @inheritDoc
+     */
     async sendGameRequest(pubSub: apollo.PubSubEngine, fromUser: User, targetUserId: number, boardSize: number): Promise<string | null> {
         if (!fromUser || fromUser.id == targetUserId) {
             return null;
@@ -96,6 +108,9 @@ export class GameService implements types.GameService {
         return requestId;
     }
 
+    /**
+     * @inheritDoc
+     */
     async cancelGameRequest(pubSub: apollo.PubSubEngine, requestId: string): Promise<boolean> {
         return new Promise(async (resolve, reject) => {
             this.redis.get(`gameRequests.${requestId}.user.target`, async (err, targetUserId) => {
@@ -116,6 +131,9 @@ export class GameService implements types.GameService {
         });
     }
 
+    /**
+     * @inheritDoc
+     */
     async acceptGameRequest(pubSub: apollo.PubSubEngine, requestId: string): Promise<{ users: User[], boardSize: number }> {
         return new Promise(async (resolve, reject) => {
             this.redis.get(`gameRequests.${requestId}.user.from`, async (err, fromUserId) => {
@@ -152,6 +170,9 @@ export class GameService implements types.GameService {
         });
     }
 
+    /**
+     * @inheritDoc
+     */
     async rejectGameRequest(pubSub: apollo.PubSubEngine, requestId: string): Promise<boolean> {
         return new Promise(async (resolve, reject) => {
             this.redis.get(`gameRequests.${requestId}.user.from`, async (err, fromUserId) => {
@@ -173,10 +194,16 @@ export class GameService implements types.GameService {
     }
 
 
+    /**
+     * @inheritDoc
+     */
     async getPlayers(game: Game): Promise<Player[]> {
         return game.players;
     }
 
+    /**
+     * @inheritDoc
+     */
     async isPlayerOnTurn(player: Player): Promise<boolean> {
         let gameStateRepository = getCustomRepository(GameStateRepository);
         let crossCount = await gameStateRepository.countSymbols(await player.game, GameSymbol.Cross);
@@ -186,11 +213,17 @@ export class GameService implements types.GameService {
             || (circleCount != crossCount && player.symbol == GameSymbol.Cross);
     }
 
+    /**
+     * @inheritDoc
+     */
     async isFieldOccupied(game: Game, x: number, y: number): Promise<boolean> {
         let gameStateRepository = getCustomRepository(GameStateRepository);
         return gameStateRepository.isFieldOccupied(game, x, y);
     }
 
+    /**
+     * @inheritDoc
+     */
     async placeSymbol(pubSub: apollo.PubSubEngine, user: User, x: number, y: number): Promise<boolean> {
         let playerRepository = getCustomRepository(PlayerRepository);
         let gameStateRepository = getRepository(GameState);
@@ -237,6 +270,9 @@ export class GameService implements types.GameService {
         return true;
     }
 
+    /**
+     * @inheritDoc
+     */
     async deactivateGame(game: Game, winner?: Player) {
         let gameRepository = getRepository(Game);
         game.active = false;
@@ -246,6 +282,9 @@ export class GameService implements types.GameService {
         await gameRepository.save(game);
     }
 
+    /**
+     * @inheritDoc
+     */
     async getGameStates(game: Game): Promise<[{ x: number, y: number, symbol: GameSymbol }]> {
         let gameStateRepository = getRepository(GameState);
         // @ts-ignore
@@ -259,6 +298,9 @@ export class GameService implements types.GameService {
             .getRawMany();
     }
 
+    /**
+     * @inheritDoc
+     */
     async checkWin(game: Game, lastSymbolX: number, lastSymbolY: number, lastSymbol: GameSymbol): Promise<boolean> {
         let gameStateRepository = getCustomRepository(GameStateRepository);
         let radius = this.requiredSymbolsForWin - 1;
