@@ -37,7 +37,7 @@ export class GameService implements types.GameService {
         return userRepository.gamesHistory(user);
     }
 
-    async startGame(pubSub: apollo.PubSub, users: User[]): Promise<Game> {
+    async startGame(pubSub: apollo.PubSub, users: User[], boardSize: number): Promise<Game> {
         let userRepository = getCustomRepository(UserRepository);
 
         for (let user of users) {
@@ -49,6 +49,7 @@ export class GameService implements types.GameService {
         let playerRepository = getRepository(Player);
         let gameRepository = getRepository(Game);
         let game = new Game();
+        game.boardSize = boardSize;
 
         return getConnection().transaction(async transactionalEntityManager => {
             game = await gameRepository.save(game);
@@ -67,7 +68,7 @@ export class GameService implements types.GameService {
         }).then(value => game);
     }
 
-    async sendGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, fromUser: User, targetUserId: number): Promise<string | null> {
+    async sendGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, fromUser: User, targetUserId: number, boardSize: number): Promise<string | null> {
         if (!fromUser || fromUser.id == targetUserId) {
             return null;
         }
@@ -82,6 +83,7 @@ export class GameService implements types.GameService {
 
         redis.set(`gameRequests.${requestId}.user.from`, fromUser.id.toString(), "EX", 5 * 60)
         redis.set(`gameRequests.${requestId}.user.target`, targetUserId.toString(), "EX", 5 * 60)
+        redis.set(`gameRequests.${requestId}.user.boardSize`, boardSize.toString(), "EX", 5 * 60)
 
         return requestId;
     }
@@ -106,7 +108,7 @@ export class GameService implements types.GameService {
         });
     }
 
-    async acceptGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, requestId: string): Promise<User[]> {
+    async acceptGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, requestId: string): Promise<{ users: User[], boardSize: number }> {
         return new Promise(async (resolve, reject) => {
             redis.get(`gameRequests.${requestId}.user.from`, async (err, fromUserId) => {
                 if (!fromUserId) {
@@ -130,7 +132,13 @@ export class GameService implements types.GameService {
                         accepted: true
                     });
 
-                    resolve(userRepository.findByIds([fromUserId, targetUserId]))
+                    redis.get(`gameRequests.${requestId}.user.boardSize`, async (err, boardSize) => {
+                        if (err || !boardSize) {
+                            throw 'Unknown board size';
+                        }
+
+                        resolve({users: await userRepository.findByIds([fromUserId, targetUserId]), boardSize: +boardSize})
+                    });
                 });
             });
         });
@@ -179,6 +187,16 @@ export class GameService implements types.GameService {
         let playerRepository = getCustomRepository(PlayerRepository);
         let gameStateRepository = getRepository(GameState);
         let activePlayer = await playerRepository.findActivePlayer(user);
+        const boardSize = (await activePlayer.game).boardSize;
+
+        if (!(x > -Math.ceil(boardSize / 2) && x < Math.ceil(boardSize / 2) &&
+            y > -Math.ceil(boardSize / 2) && y < Math.ceil(boardSize / 2))) {
+            return false;
+        }
+
+        if (!(await activePlayer.game).active) {
+            return false;
+        }
 
         if (!await this.isPlayerOnTurn(activePlayer) || await this.isFieldOccupied(await activePlayer.game, x, y)) {
             return false;

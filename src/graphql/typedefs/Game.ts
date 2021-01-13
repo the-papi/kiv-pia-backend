@@ -1,6 +1,16 @@
-import {ObjectType, Field} from "type-graphql";
+import {ObjectType, Field, registerEnumType} from "type-graphql";
 import {Player} from "./Player";
 import {SymbolPlacement} from "./SymbolPlacement";
+
+export enum BoardSize {
+    Five = 5,
+    Seven = 7,
+    Eleven = 11
+}
+
+registerEnumType(BoardSize, {
+    name: "BoardSize"
+});
 
 @ObjectType()
 export class Game {
@@ -15,6 +25,9 @@ export class Game {
 
     @Field()
     datetime: Date;
+
+    @Field(type => BoardSize)
+    boardSize: BoardSize;
 }
 
 @ObjectType()

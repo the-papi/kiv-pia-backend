@@ -39,6 +39,15 @@ class ResetPasswordInput {
 }
 
 @InputType()
+class ChangePasswordInput {
+    @Field()
+    oldPassword: string;
+
+    @Field()
+    newPassword: string;
+}
+
+@InputType()
 class ChangeUserRoleInput {
     @Field(() => Int)
     userId: number;
@@ -135,6 +144,19 @@ export class UserResolver {
 
                 return emailAlreadyUsed;
             });
+    }
+
+    @Directive('@auth')
+    @Mutation(returns => Boolean, {nullable: true})
+    async changePassword(
+        @Arg("input") input: ChangePasswordInput,
+        @Ctx() context
+    ): Promise<boolean> {
+        try {
+            return this.userService.changePassword(await context.user, input.oldPassword, input.newPassword);
+        } catch (e) {
+            return false;
+        }
     }
 
     @Directive('@auth')

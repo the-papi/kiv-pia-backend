@@ -1,5 +1,5 @@
 import * as apollo from "apollo-server";
-import {Arg, createUnionType, Ctx, Directive, Field, FieldResolver, InputType, Int, Mutation, PubSub, Query, Resolver, Root, Subscription} from "type-graphql";
+import {Arg, createUnionType, Ctx, Directive, Field, FieldResolver, InputType, Int, Mutation, PubSub, Query, registerEnumType, Resolver, Root, Subscription} from "type-graphql";
 import * as exceptions from "../../services/exceptions";
 import {GameService} from "../../services/types";
 import {inject, injectable} from "tsyringe";
@@ -9,7 +9,7 @@ import {getRepository} from "typeorm";
 import {Game as GameEntity} from "../../entity/Game";
 import {User} from "../../entity/User";
 import {RedisClient} from "redis";
-import {Game, GameAlreadyStarted, GameDoesntExist, GameRejected, PlayerAlreadyInGame} from "../typedefs/Game";
+import {BoardSize, Game, GameAlreadyStarted, GameDoesntExist, GameRejected, PlayerAlreadyInGame} from "../typedefs/Game";
 import {GameResponse, GameResponseStatus} from "../typedefs/GameResponse";
 import {SymbolPlacement} from "../typedefs/SymbolPlacement";
 import {GameWin} from "../typedefs/GameWin";
@@ -50,6 +50,9 @@ const GameStateUnion = createUnionType({
 class GameRequestInput {
     @Field(() => Int)
     userId: number;
+
+    @Field(() => BoardSize, {defaultValue: BoardSize.Seven})
+    boardSize: BoardSize;
 }
 
 @InputType()
@@ -120,7 +123,7 @@ export class GameResolver {
         @Arg("input") input: GameRequestInput
     ): Promise<string | null> {
         try {
-            return await this.gameService.sendGameRequest(pubSub, this.redis, await context.user, input.userId);
+            return await this.gameService.sendGameRequest(pubSub, this.redis, await context.user, input.userId, input.boardSize);
         } catch (e) {
             return null;
         }
@@ -173,8 +176,8 @@ export class GameResolver {
         @Arg("input") input: GameResponseInput
     ): Promise<typeof AcceptGameResultUnion> {
         return this.gameService.acceptGameRequest(pubSub, this.redis, input.requestId).then(
-            users => {
-                return this.gameService.startGame(pubSub, users).then(
+            data => {
+                return this.gameService.startGame(pubSub, data.users, data.boardSize).then(
                     async v => {
                         let game = new Game();
                         game.players = <Player[]><unknown>(await this.gameService.getPlayers(v));

@@ -18,10 +18,10 @@ export interface ChatMessageService {
 export interface GameService {
     getActiveGame(user: User): Promise<Game>;
     gamesHistory(user: User): Promise<Game[]>;
-    startGame(pubSub: apollo.PubSub, users: User[]): Promise<Game>;
-    sendGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, fromUser: User, targetUserId: number): Promise<string | null>;
+    startGame(pubSub: apollo.PubSub, users: User[], boardSize: number): Promise<Game>;
+    sendGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, fromUser: User, targetUserId: number, boardSize: number): Promise<string | null>;
     cancelGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, requestId: string): Promise<boolean>;
-    acceptGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, requestId: string): Promise<User[]>;
+    acceptGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, requestId: string): Promise<{ users: User[], boardSize: number }>;
     rejectGameRequest(pubSub: apollo.PubSubEngine, redis: RedisClient, requestId: string): Promise<boolean>;
     getPlayers(game: Game): Promise<Player[]>;
     placeSymbol(pubSub: apollo.PubSubEngine, redis: RedisClient, user: User, x: number, y: number): Promise<boolean>;
@@ -46,7 +46,8 @@ export interface UserService {
     getStatus(redis: RedisClient, user: User): Promise<UserStatus>;
     getAllUsers(): Promise<User[]>;
     resetPassword(userId: number): Promise<string | null>;
-    changeUserRole(userId: number, admin: boolean): Promise<boolean>
+    changeUserRole(userId: number, admin: boolean): Promise<boolean>;
+    changePassword(user: User, oldPassword: string, newPassword: string): Promise<boolean>;
 }
 
 export enum FriendStatus {

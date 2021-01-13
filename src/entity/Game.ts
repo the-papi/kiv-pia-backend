@@ -26,4 +26,7 @@ export class Game {
 
     @UpdateDateColumn()
     updatedAt: Date;
+
+    @Column("int")
+    boardSize: number;
 }

@@ -113,4 +113,15 @@ export class UserService implements types.UserService {
 
         return false;
     }
+
+    async changePassword(user: User, oldPassword: string, newPassword: string): Promise<boolean> {
+        if (user.validatePassword(oldPassword)) {
+            let userRepository = getRepository(User);
+            user.password = newPassword;
+            await userRepository.save(user);
+            return true;
+        }
+
+        return false;
+    }
 }

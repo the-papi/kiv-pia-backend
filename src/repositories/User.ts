@@ -10,7 +10,7 @@ export class UserRepository extends Repository<User> {
 
     async findActiveGame(user: User): Promise<Game | undefined> {
         let _user = await this.createQueryBuilder("user")
-            .select(["user.id", "player.id", "game.id", "game.active"])
+            .select(["user.id", "player.id", "game.*"])
             .innerJoin("user.players", "player")
             .innerJoin("player.game", "game")
             .where("user.id = :id", {id: user.id})
