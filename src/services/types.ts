@@ -108,6 +108,14 @@ export interface GameService {
     placeSymbol(pubSub: apollo.PubSubEngine, user: User, x: number, y: number): Promise<boolean>;
 
     /**
+     * Surrender the game
+     *
+     * @param pubSub
+     * @param user
+     */
+    surrender(pubSub: apollo.PubSubEngine, user: User): Promise<boolean>;
+
+    /**
      * Returns all game states for the given game
      *
      * @param game

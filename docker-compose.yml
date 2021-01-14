@@ -3,6 +3,8 @@ version: '3.6'
 services:
     app:
         image: node:15.3.0-alpine
+        env_file:
+            - .env
         volumes:
             - .:/var/www
         ports:

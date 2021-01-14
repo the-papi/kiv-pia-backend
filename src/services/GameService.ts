@@ -276,6 +276,26 @@ export class GameService implements types.GameService {
         return true;
     }
 
+    async surrender(pubSub: apollo.PubSubEngine, user: User): Promise<boolean> {
+        let playerRepository = getCustomRepository(PlayerRepository);
+        let activePlayer = await playerRepository.findActivePlayer(user);
+        let oppositePlayer = await playerRepository.createQueryBuilder("player")
+            .innerJoin("player.game", "game")
+            .where("game.id = :gameId", {gameId: (await activePlayer.game).id})
+            .andWhere("player.id != :playerId", {playerId: activePlayer.id})
+            .getOne();
+
+        await pubSub.publish("GAME_STATE", {
+            type: 'SURRENDER',
+            player: activePlayer,
+            gameId: (await activePlayer.game).id
+        });
+
+        setTimeout(async () => await this.deactivateGame(await activePlayer.game, oppositePlayer), 500);
+
+        return true;
+    }
+
     /**
      * @inheritDoc
      */

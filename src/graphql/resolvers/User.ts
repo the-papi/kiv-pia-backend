@@ -2,7 +2,7 @@ import {Arg, createUnionType, Ctx, Directive, Field, FieldResolver, InputType, I
 import {User, EmailAlreadyUsed, PasswordTooWeak} from "../typedefs/User";
 import {authenticate} from "../../auth";
 import {JWT} from "../typedefs/JWT";
-import {forUser as JWTForUser} from "../../auth/jwt";
+import {forUser as JWTForUser, RefreshToken} from "../../auth/jwt";
 import {inject, injectable} from "tsyringe";
 import {FriendService, UserService, UserStatus} from "../../services/types";
 import {UserStatusUpdate} from "../typedefs/UserStatusUpdate";
@@ -107,6 +107,18 @@ export class UserResolver {
         if (user) {
             return JWTForUser(user);
         }
+    }
+
+    @Directive("auth")
+    @Mutation(returns => JWT, {nullable: true, description: "Refresh login by valid auth session"})
+    async refreshLogin(
+        @Ctx() context
+    ): Promise<JWT | null> {
+        if (await context.user) {
+            return JWTForUser(await context.user);
+        }
+
+        return null;
     }
 
     @Mutation(returns => RegisterResultUnion, {description: "Registers new user"})

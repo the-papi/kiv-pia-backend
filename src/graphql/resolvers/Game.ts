@@ -15,6 +15,7 @@ import {GameWin} from "../typedefs/GameWin";
 import {GameRequestCancelled} from "../typedefs/GameRequestCancelled";
 import {GeneralStatus} from "../typedefs/GeneralStatus";
 import {container} from "../../tsyringe.config";
+import {GameSurrender} from "../typedefs/GameSurrender";
 
 const GameRequestResultUnion = createUnionType({
     name: "GameRequestResult",
@@ -43,7 +44,7 @@ const RejectGameResultUnion = createUnionType({
 
 const GameStateUnion = createUnionType({
     name: "GameState",
-    types: () => [SymbolPlacement, GameWin] as const,
+    types: () => [SymbolPlacement, GameWin, GameSurrender] as const,
 });
 
 @InputType()
@@ -256,6 +257,15 @@ export class GameResolver {
     }
 
     @Directive('@auth')
+    @Mutation(returns => Boolean, {description: "Surrender the game"})
+    async surrender(
+        @Ctx() context,
+        @PubSub() pubSub: apollo.PubSub
+    ): Promise<boolean> {
+        return this.gameService.surrender(pubSub, await context.user);
+    }
+
+    @Directive('@auth')
     @Mutation(returns => Boolean, {description: "Place assigned symbol at the given position"})
     async placeSymbol(
         @Ctx() context,
@@ -277,6 +287,8 @@ export class GameResolver {
             return Object.assign(new SymbolPlacement(), gameState);
         } else if (gameState.type === 'WIN') {
             return Object.assign(new GameWin(), gameState);
+        } else if (gameState.type === 'SURRENDER') {
+            return Object.assign(new GameSurrender(), gameState);
         }
     }
 }
